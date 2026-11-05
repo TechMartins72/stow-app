@@ -3,6 +3,10 @@ import { boolean, index, jsonb, numeric, pgEnum, pgTable, text, timestamp, uuid 
 const money = (name: string) => numeric(name, { precision: 38, scale: 18 });
 const at = (name: string) => timestamp(name, { withTimezone: true });
 
+// Row-level security is on for every table with no policies, so Supabase's
+// public Data API (anon/authenticated keys) can read nothing. The app connects
+// as the table owner, which RLS doesn't restrict.
+
 export const lockStatus = pgEnum("lock_status", ["active", "released", "exited"]);
 
 export const users = pgTable("users", {
@@ -12,7 +16,7 @@ export const users = pgTable("users", {
   gatewayUserId: text("gateway_user_id").unique(),
   riskProfile: text("risk_profile"),
   createdAt: at("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const locks = pgTable(
   "locks",
@@ -33,7 +37,7 @@ export const locks = pgTable(
     releasedAt: at("released_at"),
   },
   (t) => [index("locks_user_status_idx").on(t.userId, t.status)],
-);
+).enableRLS();
 
 export const guardrails = pgTable("guardrails", {
   userId: uuid("user_id")
@@ -44,7 +48,7 @@ export const guardrails = pgTable("guardrails", {
   allowedAssetIds: text("allowed_asset_ids").array(),
   allowPerps: boolean("allow_perps").notNull().default(false),
   updatedAt: at("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const actionLog = pgTable(
   "action_log",
@@ -64,4 +68,4 @@ export const actionLog = pgTable(
     at: at("at").notNull().defaultNow(),
   },
   (t) => [index("action_log_user_at_idx").on(t.userId, t.at)],
-);
+).enableRLS();
