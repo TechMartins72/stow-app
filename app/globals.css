@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
+/* Design tokens: see "Design system" in the design doc. Colour carries meaning:
+   hero/sky = accessible, deep blue = locked, green/red = gain/loss only. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --frame: #060f21;
+  --frame-raised: #0f1c36;
+  --frame-text: #f0f5fc;
+  --frame-muted: #9aa6b8;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --surface: #f0f5fc;
+  --surface-raised: #ffffff;
+  --border: #dde5f0;
+  --text: #122231;
+  --text-muted: #3d4f60;
+
+  --accent-primary: #0935d1;
+  --accent-primary-hover: #0629a8;
+  --hero: #0089ff;
+  --accent-locked: #00259b;
+
+  --positive: #0e9f6e;
+  --negative: #d92d20;
+  --warning: #b54708;
+  --warning-bg: #fef3c7;
+  --critical: #b42318;
+  --critical-bg: #fee4e2;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface: #0b1529;
+    --surface-raised: #13203a;
+    --border: #1f2e4d;
+    --text: #f0f5fc;
+    --text-muted: #9aa6b8;
+
+    --accent-primary: #4d7cff;
+    --accent-primary-hover: #6b92ff;
+    --accent-locked: #3557d6;
+
+    --positive: #34d399;
+    --negative: #f87171;
+    --warning: #fbbf24;
+    --warning-bg: #3a2a07;
+    --critical: #f87171;
+    --critical-bg: #3b1212;
   }
 }
 
+@theme inline {
+  --color-frame: var(--frame);
+  --color-frame-raised: var(--frame-raised);
+  --color-frame-text: var(--frame-text);
+  --color-frame-muted: var(--frame-muted);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--accent-primary);
+  --color-primary-hover: var(--accent-primary-hover);
+  --color-hero: var(--hero);
+  --color-locked: var(--accent-locked);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-critical: var(--critical);
+  --color-critical-bg: var(--critical-bg);
+  --font-sans: var(--font-jakarta);
+  --radius-card: 20px;
+  --radius-hero: 24px;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+
+/* Every amount uses tabular numerals so columns line up. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
