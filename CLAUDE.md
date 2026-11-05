@@ -1,0 +1,53 @@
+@AGENTS.md
+
+# Portfolio Vault
+
+A savings app on the True Markets Gateway API. Users lock funds (crypto, stablecoins, tokenized stocks) until a maturity date; the app refuses to co-sign anything that would move locked funds. Hackathon: "Build the Next Fintech App" (True Markets), submissions due 2026-11-29. Judged on UI/UX, production readiness and uniqueness.
+
+Design document (screens, flows, design system, API mapping): https://claude.ai/artifact/MsyvazePUYWUAU1ybDBtN5
+
+## Commands
+
+- `npm run mock` - start the mock Gateway on http://localhost:4010 (default for everything below)
+- `npm test` - unit tests plus end-to-end guard tests against an in-process mock
+- `npm run typecheck`, `npm run lint`, `npm run build`
+- `npm run dev` - Next.js app
+- `npm run dev:user | dev:balances | dev:roundtrip | dev:lock-demo` - dev scripts (mock unless `GATEWAY_MODE=live`)
+- `npm run dev:signer-key` - create the live signer key file (never overwrites)
+- `npm run db:generate`, `npm run db:migrate` - Drizzle migrations (needs `DATABASE_URL`)
+
+## Layout
+
+- `engine/` - framework-free TypeScript, no Next.js imports
+  - `gateway/` - typed HTTP client, token minting, error envelope
+  - `signing/stamp.ts` - payload stamps; `signing/guard.ts` - the SigningGuard
+  - `vault/rules.ts` - pure lock and guardrail checks; `vault/locks.ts` - create and release locks
+  - `decimal.ts` - fixed-point money math
+- `db/` - Drizzle schema and the Postgres `VaultStore`
+- `mock-gateway/` - local Gateway stand-in that verifies stamps
+- `scripts/` - dev scripts (in-memory store)
+- `app/` - Next.js UI (not built yet)
+
+## Money-safety rules (do not break these)
+
+1. Only `engine/signing/guard.ts` may call `createStamper` or read the signer key. Every order and transfer goes create -> `checkAction` -> sign -> execute through the guard. Never add another path that signs payloads.
+2. Locks are enforced by refusing to sign. Creating an order or transfer moves nothing; a blocked action is simply never signed.
+3. Locked funds stay blocked after maturity until the user releases them (`releaseLock`), and `releaseLock` refuses before `unlockAt`.
+4. The advisor goes through the same guard and rules as the user. Perps and leverage stay off.
+5. Money is decimal strings and `engine/decimal.ts` bigints. Never `Number()` or `parseFloat` an amount.
+6. Mock is the default. Real funds need `GATEWAY_MODE=live`, and dev scripts that spend also need `--yes`.
+7. Secrets live in `.secrets/` (gitignored): the organization API key file and the signer key. Never commit, log or paste them.
+8. Write the test for a rule before changing the rule.
+
+## Gateway API facts
+
+Docs index: https://docs.truemarkets.co/llms.txt - OpenAPI: https://docs.truemarkets.co/openapi/gateway.yaml
+
+- Base URL `https://api.truemarkets.co`. Paths: `/v1/gateway/...`, users at `/v1/account/organizations/{org}/users`. A UAT sandbox exists at `https://api.uat.truemarkets.co` but may need allowlisting.
+- Auth: sign `{key_id}.{unix_seconds}` with the org API key (ES256, r||s base64url) -> `POST /v1/auth/api-key/token`. Token lasts 1 hour, no refresh token; the organization id is in the JWT claim `tm.organization_id`.
+- User calls send `TM-On-Behalf-Of: <user_id>`; org-wide calls (create user, org transactions) don't.
+- Create user is idempotent per `external_ref_id`; a 503 means wallets aren't ready, so send the same request again. The signer key can never be rotated.
+- Orders: market buys use `qty_unit: "quote"` (USDC to spend); DeFi sells use `qty_unit: "base"`. An empty `order_id` means no order was created; `quote.issues` says why.
+- Stamps: sign each `payload` string exactly as returned (ECDSA P-256 SHA-256, DER hex), wrap `{publicKey, signature, scheme: "SIGNATURE_SCHEME_TK_API_P256"}`, base64url. Execute with `{signatures, auth_type: "api_key"}` in payload order.
+- Errors: branch on `code` (`quote_stale`, `insufficient_balance`, `already_submitted`), fall back to `type`; never on `message`. Show `request_id` only under "Details".
+- No webhooks: poll orders and transfers. Every live trade is real money; keep amounts small.

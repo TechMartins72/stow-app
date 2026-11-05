@@ -1,0 +1,46 @@
+{
+  "name": "portfolio-vault",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "mock": "tsx mock-gateway/server.ts",
+    "dev:user": "tsx scripts/dev-user.ts",
+    "dev:balances": "tsx scripts/dev-balances.ts",
+    "dev:roundtrip": "tsx scripts/dev-roundtrip.ts",
+    "dev:lock-demo": "tsx scripts/dev-lock-demo.ts",
+    "dev:signer-key": "tsx scripts/dev-signer-key.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "next": "16.4.5",
+    "postgres": "^4.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.0"
+  }
+}
