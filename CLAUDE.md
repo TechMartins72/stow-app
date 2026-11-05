@@ -27,7 +27,9 @@ Design document (screens, flows, design system, API mapping): https://claude.ai/
 - `db/` - Drizzle schema, migrations (`db/migrations`) and the Postgres `VaultStore`. Postgres is Supabase via the transaction pooler (port 6543, so `prepare: false`). Every table has RLS on with no policies so Supabase's public Data API sees nothing; the app connects as the table owner. Without `DATABASE_URL` the app falls back to an in-memory store.
 - `mock-gateway/` - local Gateway stand-in that verifies stamps
 - `scripts/` - dev scripts (in-memory store)
-- `app/` - Next.js UI: Home (`page.tsx`), New lock wizard (`vault/new/`); server loaders in `app/_server/`, shared lock policy in `app/_lib/lock-policy.ts`
+- `app/` - Next.js UI: Home (`page.tsx`), New lock wizard (`vault/new/`), sign-in (`signin/`, `auth/verify/`); server loaders in `app/_server/`, shared lock policy in `app/_lib/lock-policy.ts`
+  - Auth: passwordless magic links (`app/_server/auth-core.ts`, tested) and a `pv_session` cookie; only SHA-256s of tokens are stored. Links point at `APP_URL`, never the Host header, and land on a page that needs a click (mail scanners can't spend them). `proxy.ts` is an optimistic redirect; `getCurrentUser` (`app/_server/current-user.ts`) is the real check and creates the user's Gateway wallets (`external_ref_id` = our user id). Practice mode prints links to the server log and offers a one-click demo account.
+  - Gateway reads must stay live: the client sends `cache: "no-store"` and a fresh `AbortSignal`, because Next.js otherwise reuses identical GETs within one render.
 
 ## Money-safety rules (do not break these)
 

@@ -17,14 +17,17 @@ const DAY = 86_400_000;
  */
 export function seedMockDemo(engine: Engine, user: GuardUser): Promise<void> {
   if (engine.config.mode !== "mock" || process.env.MOCK_SEED === "off") return Promise.resolve();
-  // Concurrent requests share one seeding run, so funds and locks aren't added twice.
-  const g = globalThis as typeof globalThis & { __mockSeed?: Promise<void> };
-  g.__mockSeed ??= seed(engine, user)
-    .catch((err) => console.warn("[demo-seed] skipped:", err instanceof Error ? err.message : err))
-    .finally(() => {
-      g.__mockSeed = undefined;
-    });
-  return g.__mockSeed;
+  // Concurrent requests for the same user share one seeding run, so funds and locks aren't added twice.
+  const g = globalThis as typeof globalThis & { __mockSeeds?: Map<string, Promise<void>> };
+  const running = (g.__mockSeeds ??= new Map());
+  let run = running.get(user.id);
+  if (!run) {
+    run = seed(engine, user)
+      .catch((err) => console.warn("[demo-seed] skipped:", err instanceof Error ? err.message : err))
+      .finally(() => running.delete(user.id));
+    running.set(user.id, run);
+  }
+  return run;
 }
 
 async function seed(engine: Engine, user: GuardUser): Promise<void> {

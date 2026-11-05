@@ -18,6 +18,33 @@ export const users = pgTable("users", {
   createdAt: at("created_at").notNull().defaultNow(),
 }).enableRLS();
 
+/** Signed-in browsers. The cookie holds a random token; only its SHA-256 is stored. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: at("created_at").notNull().defaultNow(),
+    expiresAt: at("expires_at").notNull(),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
+).enableRLS();
+
+/** One-time sign-in links. Only the SHA-256 of the emailed token is stored. */
+export const loginTokens = pgTable(
+  "login_tokens",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    email: text("email").notNull(),
+    createdAt: at("created_at").notNull().defaultNow(),
+    expiresAt: at("expires_at").notNull(),
+    usedAt: at("used_at"),
+  },
+  (t) => [index("login_tokens_email_created_idx").on(t.email, t.createdAt)],
+).enableRLS();
+
 export const locks = pgTable(
   "locks",
   {

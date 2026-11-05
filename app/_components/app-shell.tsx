@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { AccountMenu } from "./account-menu";
 import { GearIcon, HomeIcon, ListIcon, LockIcon, PieIcon, SparkIcon, VaultMark } from "./icons";
 
 type NavItem = { label: string; href: string; icon: (p: { className?: string }) => React.ReactNode; ready: boolean };
@@ -24,15 +26,23 @@ export function AppShell({ active, children }: { active: string; children: React
             <SideLink key={item.href} item={item} active={item.href === active} />
           ))}
         </nav>
-        <p className="mt-auto px-3 text-xs leading-relaxed text-frame-muted">
-          Your keys never leave this app&apos;s signing guard. Locked funds can&apos;t move before their date.
-        </p>
+        <div className="mt-auto space-y-4">
+          <p className="px-3 text-xs leading-relaxed text-frame-muted">
+            Every payment needs our signature, and we never sign away locked funds before their date.
+          </p>
+          <Suspense fallback={<div className="h-[60px] rounded-xl bg-frame-raised" />}>
+            <AccountMenu />
+          </Suspense>
+        </div>
       </aside>
 
       <div className="flex min-h-dvh flex-col">
         {/* Mobile top bar */}
         <header className="flex items-center justify-between bg-frame px-4 py-3 text-frame-text lg:hidden">
           <Brand />
+          <Suspense fallback={null}>
+            <AccountMenu compact />
+          </Suspense>
         </header>
 
         <main className="flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">{children}</main>

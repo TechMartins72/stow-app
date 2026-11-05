@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createLock, LockError, type Tranche } from "@/engine";
 import { checkGoalName, checkLockAmount, checkUnlockDate, planSchedule } from "@/app/_lib/lock-policy";
-import { getCurrentUser, getEngine } from "@/app/_server/engine";
+import { getCurrentUser } from "@/app/_server/current-user";
+import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
 import { loadLockable } from "@/app/_server/wallet";
 

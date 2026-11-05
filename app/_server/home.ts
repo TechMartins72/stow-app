@@ -3,7 +3,8 @@ import "server-only";
 import { dec, min, mul, sum, toDecimalString, ZERO } from "@/engine/decimal";
 import { accessibleBalance, lockedNow, nextRelease, tranchesOf, type Engine, type GuardUser } from "@/engine";
 import { seedMockDemo } from "./demo-seed";
-import { getCurrentUser, getEngine } from "./engine";
+import { getCurrentUser } from "./current-user";
+import { getEngine } from "./engine";
 import { gatewayFailure, type GatewayFailure } from "./gateway-failure";
 import { priceMap } from "./wallet";
 

@@ -170,6 +170,11 @@ export class GatewayClient {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
+        // Money data must always be live. `no-store` stops caching; a fresh signal
+        // stops Next.js from reusing an identical GET within one render (otherwise a
+        // balance read after funding returns the stale, earlier answer).
+        cache: "no-store",
+        signal: new AbortController().signal,
       });
       if (res.ok) return (await res.json()) as T;
 
