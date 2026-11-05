@@ -25,6 +25,8 @@ export const locks = pgTable(
     symbol: text("symbol").notNull(),
     amount: money("amount").notNull(),
     unlockAt: at("unlock_at").notNull(),
+    // Release in parts: [{ releaseAt: ISO string, amount: decimal string }]. Null: all on unlock_at.
+    schedule: jsonb("schedule").$type<{ releaseAt: string; amount: string }[]>(),
     status: lockStatus("status").notNull().default("active"),
     goalName: text("goal_name"),
     createdAt: at("created_at").notNull().defaultNow(),

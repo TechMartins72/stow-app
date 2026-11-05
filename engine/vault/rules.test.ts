@@ -24,6 +24,7 @@ const ctx = (overrides: Partial<RuleContext> = {}): RuleContext => ({
   locks: [lock("60")],
   guardrails: { allowPerps: false },
   spentTodayUsd: "0",
+  now: new Date("2026-11-05T12:00:00Z"),
   ...overrides,
 });
 
@@ -78,9 +79,33 @@ describe("locks", () => {
     expect(rules(buy("50"))).toEqual(["locked"]);
   });
 
-  it("still blocks a matured lock until it is released", () => {
+  it("frees a matured lock automatically, with no release step", () => {
     const matured = { ...lock("60"), unlockAt: new Date("2020-01-01T00:00:00Z") };
-    expect(rules(withdraw("100"), ctx({ locks: [matured] }))).toEqual(["locked"]);
+    expect(rules(withdraw("100"), ctx({ locks: [matured] }))).toEqual([]);
+  });
+
+  it("frees scheduled parts as their dates pass, and blocks the rest", () => {
+    const parts = ["2026-12-05", "2027-01-05", "2027-02-05", "2027-03-05"].map((day) => ({
+      releaseAt: new Date(`${day}T00:00:00Z`),
+      amount: "15",
+    }));
+    const scheduled: Lock = { ...lock("60"), unlockAt: parts[3].releaseAt, schedule: parts };
+    const on = (iso: string) => ctx({ locks: [scheduled], now: new Date(iso) });
+    // Wallet holds 100, 60 locked in four parts of 15.
+    expect(rules(withdraw("41"), on("2026-12-01T00:00:00Z"))).toEqual(["locked"]);
+    expect(rules(withdraw("55"), on("2026-12-05T00:00:00Z"))).toEqual([]);
+    expect(rules(withdraw("56"), on("2026-12-05T00:00:00Z"))).toEqual(["locked"]);
+    expect(rules(withdraw("100"), on("2027-03-05T00:00:00Z"))).toEqual([]);
+  });
+
+  it("names the next release date when it blocks", () => {
+    const parts = [
+      { releaseAt: new Date("2027-01-05T00:00:00Z"), amount: "30" },
+      { releaseAt: new Date("2027-02-05T00:00:00Z"), amount: "30" },
+    ];
+    const scheduled: Lock = { ...lock("60"), unlockAt: parts[1].releaseAt, schedule: parts };
+    const [violation] = checkAction(withdraw("100"), ctx({ locks: [scheduled] })).violations;
+    expect(violation.message).toContain("2027-01-05");
   });
 
   it("reports a plain shortfall when the wallet doesn't hold enough", () => {

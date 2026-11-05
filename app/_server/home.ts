@@ -1,9 +1,11 @@
 import "server-only";
 
-import { dec, min, mul, sum, toDecimalString, ZERO, type Dec } from "@/engine/decimal";
-import { accessibleBalance, isGatewayError, type BalanceItem, type Engine, type GuardUser } from "@/engine";
+import { dec, min, mul, sum, toDecimalString, ZERO } from "@/engine/decimal";
+import { accessibleBalance, lockedNow, nextRelease, tranchesOf, type Engine, type GuardUser } from "@/engine";
 import { seedMockDemo } from "./demo-seed";
 import { getCurrentUser, getEngine } from "./engine";
+import { gatewayFailure, type GatewayFailure } from "./gateway-failure";
+import { priceMap } from "./wallet";
 
 export interface HomeHolding {
   assetId: string;
@@ -17,10 +19,19 @@ export interface HomeLock {
   id: string;
   goalName: string;
   symbol: string;
+  /** The whole lock, released and not. */
   amount: string;
-  valueUsd: string;
+  /** Still locked right now, and its value. */
+  lockedAmount: string;
+  lockedUsd: string;
   createdAt: Date;
   unlockAt: Date;
+  /** Number of parts (1 for a one-date lock) and how many have freed themselves. */
+  parts: number;
+  partsReleased: number;
+  /** Share of `amount` already released, 0..1. Display only. */
+  releasedShare: number;
+  next?: { releaseAt: Date; amount: string };
 }
 
 export interface HomeData {
@@ -34,9 +45,7 @@ export interface HomeData {
   locks: HomeLock[];
 }
 
-export type HomeResult =
-  | { ok: true; data: HomeData }
-  | { ok: false; reason: "gateway_unreachable" | "gateway_error"; mode: "mock" | "live"; requestId?: string };
+export type HomeResult = { ok: true; data: HomeData } | GatewayFailure;
 
 /** Everything Home needs, in one call. Expected failures come back as values, not throws. */
 export async function loadHome(): Promise<HomeResult> {
@@ -46,14 +55,7 @@ export async function loadHome(): Promise<HomeResult> {
     await seedMockDemo(engine, user);
     return { ok: true, data: await build(engine, user) };
   } catch (err) {
-    if (isGatewayError(err)) {
-      return { ok: false, reason: "gateway_error", mode: engine.config.mode, requestId: err.requestId };
-    }
-    const code = (err as { cause?: { code?: string } })?.cause?.code;
-    if (code === "ECONNREFUSED" || code === "ENOTFOUND") {
-      return { ok: false, reason: "gateway_unreachable", mode: engine.config.mode };
-    }
-    throw err;
+    return gatewayFailure(engine, err);
   }
 }
 
@@ -62,7 +64,9 @@ async function build(engine: Engine, user: GuardUser): Promise<HomeData> {
     engine.client.getBalances(user.gatewayUserId),
     engine.store.listLocks(user.id),
   ]);
-  const locks = allLocks.filter((l) => l.status === "active");
+  const now = new Date();
+  // Locks whose every part has freed itself drop off Home.
+  const locks = allLocks.filter((l) => lockedNow(l, now) > ZERO);
   const prices = await priceMap(engine, user, balances);
   const priceOf = (assetId: string) => prices.get(assetId) ?? ZERO;
 
@@ -80,7 +84,7 @@ async function build(engine: Engine, user: GuardUser): Promise<HomeData> {
   const lockedByAsset = new Set(locks.map((l) => l.assetId));
   const lockedUsd = sum(
     [...lockedByAsset].map((assetId) => {
-      const { available, locked } = accessibleBalance(assetId, { balances, locks });
+      const { available, locked } = accessibleBalance(assetId, { balances, locks, now });
       return mul(min(available, locked), priceOf(assetId));
     }),
   );
@@ -95,27 +99,26 @@ async function build(engine: Engine, user: GuardUser): Promise<HomeData> {
     lockedBps: totalUsd > ZERO ? Number((lockedUsd * 10_000n) / totalUsd) : 0,
     holdings,
     locks: locks
-      .map((l) => ({
-        id: l.id,
-        goalName: l.goalName ?? `${l.symbol} lock`,
-        symbol: l.symbol,
-        amount: l.amount,
-        valueUsd: toDecimalString(mul(dec(l.amount), priceOf(l.assetId)), 6),
-        createdAt: l.createdAt,
-        unlockAt: l.unlockAt,
-      }))
-      .sort((a, b) => a.unlockAt.getTime() - b.unlockAt.getTime()),
+      .map((l): HomeLock => {
+        const parts = tranchesOf(l);
+        const stillLocked = lockedNow(l, now);
+        const total = dec(l.amount);
+        const next = nextRelease(l, now);
+        return {
+          id: l.id,
+          goalName: l.goalName ?? `${l.symbol} lock`,
+          symbol: l.symbol,
+          amount: l.amount,
+          lockedAmount: toDecimalString(stillLocked),
+          lockedUsd: toDecimalString(mul(stillLocked, priceOf(l.assetId)), 6),
+          createdAt: l.createdAt,
+          unlockAt: l.unlockAt,
+          parts: parts.length,
+          partsReleased: parts.filter((t) => t.releaseAt <= now).length,
+          releasedShare: total > ZERO ? Number(((total - stillLocked) * 10_000n) / total) / 10_000 : 0,
+          next: next ? { releaseAt: next.releaseAt, amount: next.amount } : undefined,
+        };
+      })
+      .sort((a, b) => (a.next?.releaseAt ?? a.unlockAt).getTime() - (b.next?.releaseAt ?? b.unlockAt).getTime()),
   };
-}
-
-/** USD price per asset: stablecoins are 1, everything else from a sell quote for one unit. */
-async function priceMap(engine: Engine, user: GuardUser, balances: BalanceItem[]): Promise<Map<string, Dec>> {
-  const entries = await Promise.all(
-    balances.map(async (b): Promise<[string, Dec]> => {
-      if (b.stable) return [b.asset_id, dec("1")];
-      const quote = await engine.client.quote(user.gatewayUserId, { asset_id: b.asset_id, side: "sell", qty: "1", qty_unit: "base" });
-      return [b.asset_id, dec(quote.notional)];
-    }),
-  );
-  return new Map(entries);
 }

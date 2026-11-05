@@ -1,14 +1,26 @@
 export type LockStatus = "active" | "released" | "exited";
 export type Actor = "user" | "advisor";
 
-/** An amount of one asset the app refuses to co-sign out of until it is released. */
+/** One part of a lock, freed automatically on `releaseAt`. */
+export interface Tranche {
+  releaseAt: Date;
+  amount: string;
+}
+
+/**
+ * An amount of one asset the app refuses to co-sign out of. Each part is
+ * freed automatically on its date (see vault/schedule.ts).
+ */
 export interface Lock {
   id: string;
   userId: string;
   assetId: string;
   symbol: string;
   amount: string;
+  /** The last release date: the whole lock is free from here on. */
   unlockAt: Date;
+  /** Released in parts. Absent: the whole amount is freed on `unlockAt`. */
+  schedule?: Tranche[];
   status: LockStatus;
   goalName?: string;
   createdAt: Date;

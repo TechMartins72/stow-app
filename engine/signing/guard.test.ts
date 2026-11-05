@@ -9,6 +9,7 @@ import { GatewayClient } from "../gateway/client";
 import { ApiKeyTokenProvider } from "../gateway/token";
 import type { Asset } from "../gateway/types";
 import { createLock, releaseLock } from "../vault/locks";
+import { buildSchedule } from "../vault/schedule";
 import { MemoryVaultStore } from "../vault/store";
 import { generateKeyPairSync } from "node:crypto";
 import { generateSignerKey } from "./keys";
@@ -115,6 +116,40 @@ describe("SigningGuard against the mock Gateway", () => {
     await expect(releaseLock({ store, now: () => now }, user.id, lock.id)).rejects.toThrow("opens on 2026-12-01");
     now = new Date("2026-12-01T00:00:00Z");
     await expect(releaseLock({ store, now: () => now }, user.id, lock.id)).resolves.toMatchObject({ status: "released" });
+  });
+
+  it("signs a scheduled part only once its date has passed (Sandra: 25% a month)", async () => {
+    let now = new Date("2026-11-05T12:00:00Z");
+    const { store, guard, user } = await newUser("sandra", () => now);
+    const usdc = asset("USDC", "solana");
+    await fund(user, usdc, "4000");
+    const schedule = buildSchedule({
+      total: "4000",
+      decimals: 6,
+      firstAt: new Date("2026-12-05T00:00:00Z"),
+      every: "month",
+      split: { kind: "percent", percent: "25" },
+    });
+    await createLock({ client, store, now: () => now }, user.gatewayUserId, {
+      userId: user.id,
+      assetId: usdc.id,
+      symbol: "USDC",
+      amount: "4000",
+      unlockAt: schedule.at(-1)!.releaseAt,
+      schedule,
+      goalName: "Monthly budget",
+    });
+
+    const withdraw = (qty: string) => guard.withdraw(user, { asset: usdc, qty, to: DEST, actor: "user" });
+    expect(await withdraw("1")).toMatchObject({ status: "blocked", violations: [{ rule: "locked" }] });
+
+    now = new Date("2026-12-05T00:00:00Z"); // first 1,000 frees itself
+    expect(await withdraw("1000.5")).toMatchObject({ status: "blocked", violations: [{ rule: "locked" }] });
+    expect((await withdraw("1000")).status).toBe("executed");
+
+    now = new Date("2027-01-05T00:00:00Z"); // second 1,000
+    expect((await withdraw("1000")).status).toBe("executed");
+    expect(await withdraw("1")).toMatchObject({ status: "blocked", violations: [{ rule: "locked" }] });
   });
 
   it("won't lock more than is accessible", async () => {

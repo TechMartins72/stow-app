@@ -1,31 +1,49 @@
+import Link from "next/link";
 import { ArrowRightIcon, LockIcon, PadlockMotif, PlusIcon, ScaleIcon, SparkIcon } from "./icons";
 
-/** Add funds, New lock, Rebalance. Disabled until their flows exist. */
+/** Add funds, New lock, Rebalance. Actions without a flow yet stay disabled. */
 export function QuickActions() {
   const actions = [
-    { label: "Add funds", icon: PlusIcon, primary: false },
-    { label: "New lock", icon: LockIcon, primary: true },
-    { label: "Rebalance", icon: ScaleIcon, primary: false },
+    { label: "Add funds", icon: PlusIcon, primary: false, href: null },
+    { label: "New lock", icon: LockIcon, primary: true, href: "/vault/new" },
+    { label: "Rebalance", icon: ScaleIcon, primary: false, href: null },
   ];
+  const base =
+    "flex flex-col items-center gap-2 rounded-[20px] px-2 py-4 text-sm font-semibold transition sm:flex-row sm:justify-center sm:py-3.5";
   return (
     <section aria-label="Quick actions" className="grid grid-cols-3 gap-3">
-      {actions.map(({ label, icon: Icon, primary }) => (
-        <button
-          key={label}
-          type="button"
-          disabled
-          title="Coming soon"
-          className={`flex flex-col items-center gap-2 rounded-[20px] px-2 py-4 text-sm font-semibold transition disabled:cursor-not-allowed sm:flex-row sm:justify-center sm:py-3.5 ${
-            primary
-              ? "bg-primary text-white enabled:hover:bg-primary-hover disabled:opacity-80"
-              : "border border-border bg-surface-raised text-text disabled:opacity-80"
-          }`}
-        >
-          <Icon className="size-5" />
-          {label}
-        </button>
-      ))}
+      {actions.map(({ label, icon: Icon, primary, href }) => {
+        const look = primary
+          ? "bg-primary text-white hover:bg-primary-hover"
+          : "border border-border bg-surface-raised text-text";
+        return href ? (
+          <Link key={label} href={href} className={`${base} ${look} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary`}>
+            <Icon className="size-5" />
+            {label}
+          </Link>
+        ) : (
+          <button key={label} type="button" disabled title="Coming soon" className={`${base} ${look} cursor-not-allowed opacity-60`}>
+            <Icon className="size-5" />
+            {label}
+          </button>
+        );
+      })}
     </section>
+  );
+}
+
+/** Shown once after a lock is created. */
+export function LockedBanner({ goalName, detail }: { goalName: string; detail: string }) {
+  return (
+    <div role="status" className="flex items-center gap-3 rounded-[20px] bg-frame p-4 text-frame-text">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-hero text-white">
+        <LockIcon className="size-5" />
+      </span>
+      <p className="text-sm">
+        <span className="font-bold">“{goalName}” is locked.</span>{" "}
+        <span className="text-frame-muted">{detail}</span>
+      </p>
+    </div>
   );
 }
 
@@ -54,6 +72,12 @@ export function NoLocksCard() {
         Pick an amount and a date. Until then, the app refuses to move it, even if you ask. For example: lock $500 until
         your rent is due.
       </p>
+      <Link
+        href="/vault/new"
+        className="relative mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-[22px] py-[13px] text-sm font-semibold text-white hover:bg-primary-hover"
+      >
+        <LockIcon className="size-4" /> Create a lock
+      </Link>
     </div>
   );
 }

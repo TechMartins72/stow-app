@@ -18,6 +18,7 @@ function toLock(row: LockRow): Lock {
     symbol: row.symbol,
     amount: clean(row.amount),
     unlockAt: row.unlockAt,
+    schedule: row.schedule?.map((t) => ({ releaseAt: new Date(t.releaseAt), amount: t.amount })),
     status: row.status,
     goalName: row.goalName ?? undefined,
     createdAt: row.createdAt,
@@ -36,7 +37,12 @@ export class DrizzleVaultStore implements VaultStore {
   async insertLock(input: NewLock, now: Date) {
     const [row] = await this.db
       .insert(locks)
-      .values({ ...input, status: "active", createdAt: now })
+      .values({
+        ...input,
+        schedule: input.schedule?.map((t) => ({ releaseAt: t.releaseAt.toISOString(), amount: t.amount })),
+        status: "active",
+        createdAt: now,
+      })
       .returning();
     return toLock(row);
   }

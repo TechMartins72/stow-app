@@ -3,6 +3,7 @@
 
 import { dec, sum, toDecimalString, ZERO, type Dec } from "../decimal";
 import type { BalanceItem } from "../gateway/types";
+import { lockedNow, nextRelease } from "./schedule";
 import type { Decision, Guardrails, Lock, ProposedAction, Violation } from "./types";
 
 export interface RuleContext {
@@ -11,6 +12,8 @@ export interface RuleContext {
   guardrails: Guardrails;
   /** USD already spent today (buys and withdrawals that executed). */
   spentTodayUsd: string;
+  /** Lock parts whose date has passed are free. */
+  now: Date;
 }
 
 export interface Accessible {
@@ -19,11 +22,11 @@ export interface Accessible {
   accessible: Dec;
 }
 
-/** What the user can move: the wallet's available amount minus active locks on that asset. */
-export function accessibleBalance(assetId: string, ctx: Pick<RuleContext, "balances" | "locks">): Accessible {
+/** What the user can move: the wallet's available amount minus what locks still hold right now. */
+export function accessibleBalance(assetId: string, ctx: Pick<RuleContext, "balances" | "locks" | "now">): Accessible {
   const available = sum(ctx.balances.filter((b) => b.asset_id === assetId).map((b) => dec(b.available)));
-  // Matured locks still hold funds until the user releases them.
-  const locked = sum(ctx.locks.filter((l) => l.assetId === assetId && l.status === "active").map((l) => dec(l.amount)));
+  // Each lock part frees itself on its date; no release step is needed.
+  const locked = sum(ctx.locks.filter((l) => l.assetId === assetId).map((l) => lockedNow(l, ctx.now)));
   const accessible = available - locked;
   return { available, locked, accessible: accessible > ZERO ? accessible : ZERO };
 }
@@ -46,8 +49,11 @@ export function checkAction(action: ProposedAction, ctx: RuleContext): Decision 
     const { available, locked, accessible } = accessibleBalance(debit.assetId, ctx);
     if (qty <= accessible) continue;
     if (qty <= available && locked > ZERO) {
-      const lockedHere = ctx.locks.filter((l) => l.assetId === debit.assetId && l.status === "active");
-      const nextUnlock = lockedHere.map((l) => l.unlockAt).sort((a, b) => a.getTime() - b.getTime())[0];
+      const nextUnlock = ctx.locks
+        .filter((l) => l.assetId === debit.assetId)
+        .map((l) => nextRelease(l, ctx.now)?.releaseAt)
+        .filter((at): at is Date => at !== undefined)
+        .sort((a, b) => a.getTime() - b.getTime())[0];
       violations.push({
         rule: "locked",
         message:

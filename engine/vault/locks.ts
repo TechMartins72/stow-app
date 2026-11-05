@@ -1,6 +1,7 @@
 import { dec, toDecimalString, ZERO } from "../decimal";
 import type { GatewayClient } from "../gateway/client";
 import { accessibleBalance } from "./rules";
+import { validateSchedule } from "./schedule";
 import type { NewLock, VaultStore } from "./store";
 import type { Lock } from "./types";
 
@@ -24,19 +25,26 @@ export async function createLock(
   const amount = dec(input.amount);
   if (amount <= ZERO) throw new LockError("Lock amount must be more than zero.");
   if (input.unlockAt <= now) throw new LockError("Unlock date must be in the future.");
+  if (input.schedule) {
+    const problem = validateSchedule(input.amount, input.unlockAt, input.schedule, now);
+    if (problem) throw new LockError(problem);
+  }
 
   const [balances, locks] = await Promise.all([
     deps.client.getBalances(gatewayUserId),
     deps.store.listLocks(input.userId),
   ]);
-  const { accessible } = accessibleBalance(input.assetId, { balances, locks });
+  const { accessible } = accessibleBalance(input.assetId, { balances, locks, now });
   if (amount > accessible) {
     throw new LockError(`Only ${toDecimalString(accessible, 6)} ${input.symbol} is available to lock.`);
   }
   return deps.store.insertLock(input, now);
 }
 
-/** Releases a matured lock back to the accessible balance. Never before its unlock date. */
+/**
+ * Marks a finished lock as released (housekeeping: its parts already freed
+ * themselves on their dates). Never before its final unlock date.
+ */
 export async function releaseLock(
   deps: { store: VaultStore; now?: () => Date },
   userId: string,

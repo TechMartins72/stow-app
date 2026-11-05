@@ -22,17 +22,18 @@ Design document (screens, flows, design system, API mapping): https://claude.ai/
   - `gateway/` - typed HTTP client, token minting, error envelope
   - `signing/stamp.ts` - payload stamps; `signing/guard.ts` - the SigningGuard
   - `vault/rules.ts` - pure lock and guardrail checks; `vault/locks.ts` - create and release locks
+  - `vault/schedule.ts` - release schedules (parts freed on their dates) and `lockedNow`
   - `decimal.ts` - fixed-point money math
 - `db/` - Drizzle schema and the Postgres `VaultStore`
 - `mock-gateway/` - local Gateway stand-in that verifies stamps
 - `scripts/` - dev scripts (in-memory store)
-- `app/` - Next.js UI (not built yet)
+- `app/` - Next.js UI: Home (`page.tsx`), New lock wizard (`vault/new/`); server loaders in `app/_server/`, shared lock policy in `app/_lib/lock-policy.ts`
 
 ## Money-safety rules (do not break these)
 
 1. Only `engine/signing/guard.ts` may call `createStamper` or read the signer key. Every order and transfer goes create -> `checkAction` -> sign -> execute through the guard. Never add another path that signs payloads.
 2. Locks are enforced by refusing to sign. Creating an order or transfer moves nothing; a blocked action is simply never signed.
-3. Locked funds stay blocked after maturity until the user releases them (`releaseLock`), and `releaseLock` refuses before `unlockAt`.
+3. A lock is a list of parts (`schedule`; a one-date lock is one part). Each part stays blocked until its `releaseAt` and then frees itself automatically: what is locked is always `lockedNow(lock, now)` from `engine/vault/schedule.ts`, never `lock.amount`. Release schedules are for stablecoins only. `releaseLock` is housekeeping and refuses before `unlockAt`.
 4. The advisor goes through the same guard and rules as the user. Perps and leverage stay off.
 5. Money is decimal strings and `engine/decimal.ts` bigints. Never `Number()` or `parseFloat` an amount.
 6. Mock is the default. Real funds need `GATEWAY_MODE=live`, and dev scripts that spend also need `--yes`.

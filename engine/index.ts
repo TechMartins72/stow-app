@@ -67,5 +67,16 @@ export type * from "./gateway/types";
 export { SigningGuard, type GuardOutcome, type GuardUser } from "./signing/guard";
 export { createLock, releaseLock, LockError } from "./vault/locks";
 export { accessibleBalance, checkAction } from "./vault/rules";
+export {
+  addInterval,
+  buildSchedule,
+  lockedNow,
+  MAX_TRANCHES,
+  nextRelease,
+  tranchesOf,
+  validateSchedule,
+  type Interval,
+  type Split,
+} from "./vault/schedule";
 export { MemoryVaultStore, type VaultStore } from "./vault/store";
 export type * from "./vault/types";

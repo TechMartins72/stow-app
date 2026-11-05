@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { dec, sum, toDecimalString } from "../decimal";
-import { DEFAULT_GUARDRAILS, type ActionLogEntry, type Guardrails, type Lock } from "./types";
+import { DEFAULT_GUARDRAILS, type ActionLogEntry, type Guardrails, type Lock, type Tranche } from "./types";
 
 export interface NewLock {
   userId: string;
@@ -8,6 +8,7 @@ export interface NewLock {
   symbol: string;
   amount: string;
   unlockAt: Date;
+  schedule?: Tranche[];
   goalName?: string;
 }
 

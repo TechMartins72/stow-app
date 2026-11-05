@@ -7,15 +7,16 @@ import {
   FirstDepositCard,
   GatewayErrorCard,
   HomeSkeleton,
+  LockedBanner,
   NoLocksCard,
   QuickActions,
   SectionHeading,
 } from "./_components/home-sections";
 import { LockCard } from "./_components/lock-card";
-import { formatUsd } from "./_lib/format";
+import { formatDate, formatUsd } from "./_lib/format";
 import { loadHome } from "./_server/home";
 
-export default function HomePage() {
+export default function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <AppShell active="/">
       <div className="mx-auto max-w-5xl">
@@ -24,16 +25,17 @@ export default function HomePage() {
           <h1 className="display text-[28px] leading-tight sm:text-[32px]">Your savings</h1>
         </header>
         <Suspense fallback={<HomeSkeleton />}>
-          <HomeContent />
+          <HomeContent searchParams={searchParams} />
         </Suspense>
       </div>
     </AppShell>
   );
 }
 
-async function HomeContent() {
+async function HomeContent({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   await connection(); // Balances and countdowns are per request.
-  const result = await loadHome();
+  const [result, params] = await Promise.all([loadHome(), searchParams]);
+  const justLocked = typeof params.locked === "string" ? params.locked : undefined;
   if (!result.ok) return <GatewayErrorCard reason={result.reason} mode={result.mode} requestId={result.requestId} />;
 
   const { data } = result;
@@ -41,9 +43,20 @@ async function HomeContent() {
   const now = new Date();
 
   if (data.holdings.length === 0) return <FirstDepositCard practice={practice} />;
+  const newLock = data.locks.find((l) => l.id === justLocked);
 
   return (
     <div className="space-y-8">
+      {newLock ? (
+        <LockedBanner
+          goalName={newLock.goalName}
+          detail={
+            newLock.parts > 1 && newLock.next
+              ? `The first ${newLock.next.amount} ${newLock.symbol} unlocks on ${formatDate(newLock.next.releaseAt)}, then the rest in ${newLock.parts - 1} more parts.`
+              : `It unlocks on ${formatDate(newLock.unlockAt)}. Until then, it stays put.`
+          }
+        />
+      ) : null}
       <BalanceHero
         total={formatUsd(data.totalUsd)}
         locked={formatUsd(data.lockedUsd)}
@@ -61,7 +74,7 @@ async function HomeContent() {
         ) : (
           <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-3">
             {data.locks.map((lock) => (
-              <LockCard key={lock.id} lock={lock} now={now} />
+              <LockCard key={lock.id} lock={lock} now={now} highlight={lock.id === justLocked} />
             ))}
           </div>
         )}

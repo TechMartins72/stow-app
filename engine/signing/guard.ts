@@ -171,7 +171,7 @@ export class SigningGuard {
       this.store.getGuardrails(user.id),
       this.store.spentTodayUsd(user.id, now),
     ]);
-    return { balances, locks, guardrails, spentTodayUsd };
+    return { balances, locks, guardrails, spentTodayUsd, now };
   }
 
   private async valueInUsd(user: GuardUser, asset: Asset, qty: string): Promise<string> {
