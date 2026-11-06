@@ -1,62 +1,41 @@
 import Link from "next/link";
-import { ArrowRightIcon, LockIcon, PadlockMotif, PlusIcon, ScaleIcon, SparkIcon } from "./icons";
+import { ArrowRightIcon, LockIcon, PadlockMotif, PlusIcon, SparkIcon } from "./icons";
 
-/** Add funds, New lock, Rebalance. Actions without a flow yet stay disabled. */
+/** Add funds, New lock, Withdraw. */
 export function QuickActions() {
   const actions = [
-    { label: "Add funds", icon: PlusIcon, primary: false, href: null },
+    { label: "Add funds", icon: PlusIcon, primary: false, href: "/add-funds" },
     { label: "New lock", icon: LockIcon, primary: true, href: "/vault/new" },
-    { label: "Rebalance", icon: ScaleIcon, primary: false, href: null },
+    { label: "Withdraw", icon: ArrowRightIcon, primary: false, href: "/withdraw" },
   ];
   const base =
-    "flex flex-col items-center gap-2 rounded-[20px] px-2 py-4 text-sm font-semibold transition sm:flex-row sm:justify-center sm:py-3.5";
+    "flex flex-col items-center gap-2 rounded-[20px] px-2 py-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:justify-center sm:py-3.5";
   return (
     <section aria-label="Quick actions" className="grid grid-cols-3 gap-3">
-      {actions.map(({ label, icon: Icon, primary, href }) => {
-        const look = primary
-          ? "bg-primary text-white hover:bg-primary-hover"
-          : "border border-border bg-surface-raised text-text";
-        return href ? (
-          <Link key={label} href={href} className={`${base} ${look} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary`}>
-            <Icon className="size-5" />
-            {label}
-          </Link>
-        ) : (
-          <button key={label} type="button" disabled title="Coming soon" className={`${base} ${look} cursor-not-allowed opacity-60`}>
-            <Icon className="size-5" />
-            {label}
-          </button>
-        );
-      })}
+      {actions.map(({ label, icon: Icon, primary, href }) => (
+        <Link
+          key={label}
+          href={href}
+          className={`${base} ${primary ? "bg-primary text-white hover:bg-primary-hover" : "border border-border bg-surface-raised text-text hover:border-text-muted/40"}`}
+        >
+          <Icon className="size-5" />
+          {label}
+        </Link>
+      ))}
     </section>
   );
 }
 
-/** Shown once after a lock is created. */
-export function LockedBanner({ goalName, detail }: { goalName: string; detail: string }) {
-  return (
-    <div role="status" className="flex items-center gap-3 rounded-[20px] bg-frame p-4 text-frame-text">
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-hero text-white">
-        <LockIcon className="size-5" />
-      </span>
-      <p className="text-sm">
-        <span className="font-bold">“{goalName}” is locked.</span>{" "}
-        <span className="text-frame-muted">{detail}</span>
-      </p>
-    </div>
-  );
-}
-
-export function SectionHeading({ id, title, action }: { id?: string; title: string; action?: string }) {
+export function SectionHeading({ id, title, action }: { id?: string; title: string; action?: { label: string; href: string } }) {
   return (
     <div className="mb-3 flex items-baseline justify-between">
       <h2 id={id} className="display text-xl">
         {title}
       </h2>
       {action ? (
-        <span className="flex items-center gap-1 text-sm font-semibold text-text-muted" title="Coming soon">
-          {action} <ArrowRightIcon className="size-4" />
-        </span>
+        <Link href={action.href} className="flex items-center gap-1 text-sm font-semibold text-text-muted hover:text-text">
+          {action.label} <ArrowRightIcon className="size-4" />
+        </Link>
       ) : null}
     </div>
   );
@@ -87,15 +66,18 @@ export function AdvisorCard() {
   return (
     <section aria-labelledby="advisor-title" className="rounded-[20px] border border-border bg-surface-raised p-5">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 place-items-center rounded-full bg-hero/15 text-hero">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-hero/15 text-hero">
           <SparkIcon className="size-5" />
         </span>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 id="advisor-title" className="text-base font-bold">
-            Advisor is off
+            Advisor
           </h2>
-          <p className="text-sm text-text-muted">It will suggest small, rule-checked moves with a one-line reason.</p>
+          <p className="text-sm text-text-muted">Small, rule-checked suggestions. Nothing happens until you approve.</p>
         </div>
+        <Link href="/advisor" className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover">
+          See suggestions
+        </Link>
       </div>
       <ul className="mt-4 space-y-2 text-sm text-text-muted">
         <li className="flex gap-2">
@@ -123,14 +105,12 @@ export function FirstDepositCard({ practice }: { practice: boolean }) {
         Add funds, choose a date, and we&apos;ll keep them safe from impulse spending until then.
         {practice ? " You're in practice mode, so nothing here is real money." : ""}
       </p>
-      <button
-        type="button"
-        disabled
-        title="Coming soon"
-        className="relative mt-6 inline-flex items-center gap-2 rounded-xl bg-frame px-[22px] py-[15px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-90"
+      <Link
+        href="/add-funds"
+        className="relative mt-6 inline-flex items-center gap-2 rounded-xl bg-frame px-[22px] py-[15px] font-semibold text-white hover:bg-frame-raised"
       >
         <PlusIcon className="size-5" /> Add funds
-      </button>
+      </Link>
     </section>
   );
 }

@@ -70,16 +70,21 @@ async function seed(engine: Engine, user: GuardUser): Promise<void> {
 /** Credits each asset up to at least `target` in the mock wallet. */
 async function topUp(engine: Engine, user: GuardUser, targets: [Asset, string][]): Promise<void> {
   const balances = await engine.client.getBalances(user.gatewayUserId);
-  const token = await engine.tokens.getToken();
   for (const [asset, target] of targets) {
     const held = balances.find((b) => b.asset_id === asset.id)?.available ?? "0";
     const missing = dec(target) - dec(held);
-    if (missing <= ZERO) continue;
-    const res = await fetch(`${engine.config.apiBase}/mock/fund`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ user_id: user.gatewayUserId, asset_id: asset.id, amount: toDecimalString(missing) }),
-    });
-    if (!res.ok) throw new Error(`Mock funding failed: ${res.status}`);
+    if (missing > ZERO) await mockCredit(engine, user, asset.id, toDecimalString(missing));
   }
+}
+
+/** Mock only: adds practice funds to the user's wallet, like an incoming deposit. */
+export async function mockCredit(engine: Engine, user: GuardUser, assetId: string, amount: string): Promise<void> {
+  if (engine.config.mode !== "mock") throw new Error("Practice funds only exist in practice mode");
+  const res = await fetch(`${engine.config.apiBase}/mock/fund`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await engine.tokens.getToken()}` },
+    body: JSON.stringify({ user_id: user.gatewayUserId, asset_id: assetId, amount }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Mock funding failed: ${res.status}`);
 }

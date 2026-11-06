@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { countdown, formatDate, formatQty, formatUsd, lockProgress } from "@/app/_lib/format";
-import type { HomeLock } from "@/app/_server/home";
+import type { LockView } from "@/app/_lib/lock-view";
 
 function ProgressRing({ value }: { value: number }) {
   const r = 22;
@@ -23,7 +24,7 @@ function ProgressRing({ value }: { value: number }) {
 }
 
 /** One lock. Scheduled locks show how much has been released and what's next. */
-export function LockCard({ lock, now, highlight = false }: { lock: HomeLock; now: Date; highlight?: boolean }) {
+export function LockCard({ lock, now, highlight = false }: { lock: LockView; now: Date; highlight?: boolean }) {
   const scheduled = lock.parts > 1;
   const nextAt = lock.next?.releaseAt ?? lock.unlockAt;
   const left = countdown(nextAt, now);
@@ -31,8 +32,9 @@ export function LockCard({ lock, now, highlight = false }: { lock: HomeLock; now
   const progress = scheduled ? lock.releasedShare : lockProgress(lock.createdAt, lock.unlockAt, now);
 
   return (
-    <article
-      className={`flex min-w-[260px] snap-start flex-col rounded-[20px] border bg-surface-raised p-5 ${
+    <Link
+      href={`/vault/${lock.id}`}
+      className={`flex min-w-[260px] snap-start flex-col rounded-[20px] border bg-surface-raised p-5 transition hover:border-locked/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
         highlight ? "border-locked ring-2 ring-locked/40" : "border-border"
       }`}
     >
@@ -66,6 +68,6 @@ export function LockCard({ lock, now, highlight = false }: { lock: HomeLock; now
           {scheduled ? "Next" : "Opens"} {formatDate(nextAt)}
         </span>
       </div>
-    </article>
+    </Link>
   );
 }

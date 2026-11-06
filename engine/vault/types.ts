@@ -62,7 +62,9 @@ export type ViolationRule =
   | "asset_not_allowed"
   | "perps_disabled"
   | "single_trade_limit"
-  | "daily_limit";
+  | "daily_limit"
+  /** The live quote is worse than the minimum the user accepted. */
+  | "price_moved";
 
 export interface Violation {
   rule: ViolationRule;

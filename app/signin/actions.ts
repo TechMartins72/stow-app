@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { requestLoginLink, signInWithToken, signOut, startSession } from "@/app/_server/auth-core";
 import { sendSignInEmail } from "@/app/_server/email";
+import { flash } from "@/app/_server/flash";
 import { appUrl, getAuthStore, setSessionCookie, takeSessionCookie } from "@/app/_server/session";
 
 export type LinkState =
@@ -39,6 +40,7 @@ export async function verifyLinkAction(form: FormData): Promise<void> {
   const result = token ? await signInWithToken(getAuthStore(), token, new Date()) : { ok: false as const };
   if (!result.ok) redirect("/auth/verify?error=expired");
   await setSessionCookie(result.sessionToken);
+  await flash({ tone: "success", title: "You're signed in" });
   redirect("/");
 }
 
@@ -48,11 +50,13 @@ export async function demoSignInAction(): Promise<void> {
   const store = getAuthStore();
   const user = await store.upsertUser(`demo-${randomBytes(5).toString("hex")}@demo.invalid`);
   await setSessionCookie(await startSession(store, user.id, new Date()));
+  await flash({ tone: "info", title: "Practice account ready", body: "Everything here is practice money. Nothing real moves." });
   redirect("/");
 }
 
 export async function signOutAction(): Promise<void> {
   const token = await takeSessionCookie();
   if (token) await signOut(getAuthStore(), token);
+  await flash({ tone: "info", title: "Signed out" });
   redirect("/signin");
 }

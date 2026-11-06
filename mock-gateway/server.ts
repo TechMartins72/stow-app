@@ -19,7 +19,10 @@ const ASSETS: (Asset & { price: string })[] = [
   { id: "00000000-0000-4000-8000-000000000001", symbol: "USDC", name: "USD Coin", chain: "solana", venue: "defi", asset_class: "crypto", type: "spot", stable: true, decimals: 6, price: "1" },
   { id: "00000000-0000-4000-8000-000000000002", symbol: "SOL", name: "Solana", chain: "solana", venue: "defi", asset_class: "crypto", type: "spot", stable: false, decimals: 9, price: "150" },
   { id: "00000000-0000-4000-8000-000000000003", symbol: "USDC", name: "USD Coin", chain: "base", venue: "defi", asset_class: "crypto", type: "spot", stable: true, decimals: 6, price: "1" },
-  { id: "00000000-0000-4000-8000-000000000004", symbol: "AAPLC", name: "Apple (tokenized)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "220" },
+  { id: "00000000-0000-4000-8000-000000000004", symbol: "AAPLC", name: "Apple (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "220" },
+  { id: "00000000-0000-4000-8000-000000000006", symbol: "NVDAC", name: "NVIDIA (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "140" },
+  { id: "00000000-0000-4000-8000-000000000007", symbol: "MSFTC", name: "Microsoft (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "430" },
+  { id: "00000000-0000-4000-8000-000000000008", symbol: "TSLAC", name: "Tesla (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "250" },
   { id: "00000000-0000-4000-8000-000000000005", symbol: "BTC-PERP", name: "Bitcoin perpetual", chain: "hypercore-perp", venue: "defi", asset_class: "crypto", type: "perp", stable: false, decimals: 5, price: "100000" },
 ];
 

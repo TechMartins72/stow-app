@@ -29,6 +29,9 @@ Design document (screens, flows, design system, API mapping): https://claude.ai/
 - `scripts/` - dev scripts (in-memory store)
 - `app/` - Next.js UI: Home (`page.tsx`), New lock wizard (`vault/new/`), sign-in (`signin/`, `auth/verify/`); server loaders in `app/_server/`, shared lock policy in `app/_lib/lock-policy.ts`
   - Auth: passwordless magic links (`app/_server/auth-core.ts`, tested) and a `pv_session` cookie; only SHA-256s of tokens are stored. Links point at `APP_URL`, never the Host header, and land on a page that needs a click (mail scanners can't spend them). `proxy.ts` is an optimistic redirect; `getCurrentUser` (`app/_server/current-user.ts`) is the real check and creates the user's Gateway wallets (`external_ref_id` = our user id). Practice mode prints links to the server log and offers a one-click demo account.
+  - Screens: Vault (`vault/`), Withdraw, Add funds, Invest (`invest/`, buy/sell and "buy and lock"), Activity, Advisor. Toasts via `useToast()` in client code, or `flash()` in a server action before a redirect.
+  - Trading (`app/_lib/trade-policy.ts`): $1.00 minimum, dollars and cents; a stock is paid with USDC on its own chain (Base for Coinbase tokenized stocks, ticker = symbol minus the trailing C). Every buy/sell passes `minQtyOut` = quote less 1%, and the guard refuses (`price_moved`) below it. A failure after submitting is an unknown outcome: never retry it automatically.
+  - Advisor (`app/_lib/advisor.ts`): pure, deterministic suggestions from holdings, locks and the user's risk profile (`users.risk_profile`). Approval rebuilds the suggestion server-side from the id and executes through the guard with `actor: "advisor"`.
   - Gateway reads must stay live: the client sends `cache: "no-store"` and a fresh `AbortSignal`, because Next.js otherwise reuses identical GETs within one render.
 
 ## Money-safety rules (do not break these)

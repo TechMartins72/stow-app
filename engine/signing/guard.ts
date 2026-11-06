@@ -29,6 +29,11 @@ export interface MarketOrderInput {
   /** Buy: USDC to spend. Sell: base asset quantity. Decimal string. */
   amount: string;
   actor: Actor;
+  /**
+   * The least the user accepts to receive: tokens for a buy, USDC for a sell.
+   * Usually the previewed quote less a small allowance; below it the guard won't sign.
+   */
+  minQtyOut?: string;
 }
 
 export interface WithdrawInput {
@@ -101,9 +106,12 @@ export class SigningGuard {
     }
 
     const action: ProposedAction = { kind: side, actor, assetId: asset.id, symbol: asset.symbol, productType, debits, notionalUsd };
-    const decision = checkAction(action, ctx);
+    const violations = [...checkAction(action, ctx).violations];
+    if (input.minQtyOut && dec(quote.qty_out ?? "0") < dec(input.minQtyOut)) {
+      violations.push({ rule: "price_moved", message: "The price moved since your quote. Nothing was traded; get a new quote." });
+    }
     // Blocked: the unsigned order is left to expire. Nothing moved.
-    if (!decision.allowed) return this.block(user, actor, side, asset, notionalUsd, decision.violations);
+    if (violations.length > 0) return this.block(user, actor, side, asset, notionalUsd, violations);
 
     const signatures = this.sign(order.payloads ?? []);
     let final: OrderDetail;

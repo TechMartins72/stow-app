@@ -5,13 +5,13 @@ import { GearIcon, HomeIcon, ListIcon, LockIcon, PieIcon, SparkIcon, VaultMark }
 
 type NavItem = { label: string; href: string; icon: (p: { className?: string }) => React.ReactNode; ready: boolean };
 
-// Only Home exists so far; the rest show as "Soon" until their screens land.
+// Screens that don't exist yet show as "Soon".
 const NAV: NavItem[] = [
   { label: "Home", href: "/", icon: HomeIcon, ready: true },
-  { label: "Portfolio", href: "/portfolio", icon: PieIcon, ready: false },
-  { label: "Vault", href: "/vault", icon: LockIcon, ready: false },
-  { label: "Advisor", href: "/advisor", icon: SparkIcon, ready: false },
-  { label: "Activity", href: "/activity", icon: ListIcon, ready: false },
+  { label: "Invest", href: "/invest", icon: PieIcon, ready: true },
+  { label: "Vault", href: "/vault", icon: LockIcon, ready: true },
+  { label: "Advisor", href: "/advisor", icon: SparkIcon, ready: true },
+  { label: "Activity", href: "/activity", icon: ListIcon, ready: true },
   { label: "Settings", href: "/settings", icon: GearIcon, ready: false },
 ];
 

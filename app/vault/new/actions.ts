@@ -7,6 +7,8 @@ import { checkGoalName, checkLockAmount, checkUnlockDate, planSchedule } from "@
 import { getCurrentUser } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
+import { flash } from "@/app/_server/flash";
+import { formatDate, formatQty } from "@/app/_lib/format";
 import { loadLockable } from "@/app/_server/wallet";
 
 const Unlock = z.discriminatedUnion("kind", [
@@ -88,6 +90,15 @@ export async function createLockAction(raw: CreateLockInput): Promise<CreateLock
       goalName: input.goalName.trim(),
     });
     lockId = lock.id;
+    await flash({
+      tone: "success",
+      title: `“${lock.goalName}” is locked`,
+      body: schedule
+        ? `The first ${formatQty(schedule[0].amount)} ${asset.symbol} unlocks on ${formatDate(schedule[0].releaseAt)}, then ${schedule.length - 1} more.`
+        : `${formatQty(amount)} ${asset.symbol} unlocks on ${formatDate(unlockAt)}.`,
+      href: `/vault/${lock.id}`,
+      linkLabel: "View lock",
+    });
   } catch (err) {
     if (err instanceof LockError) return { ok: false, message: err.message };
     const failure = gatewayFailure(engine, err);

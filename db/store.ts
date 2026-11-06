@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, sum } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sum } from "drizzle-orm";
 import { dec, toDecimalString } from "../engine/decimal";
 import { startOfUtcDay, type NewLock, type VaultStore } from "../engine/vault/store";
 import { DEFAULT_GUARDRAILS, type ActionLogEntry, type Guardrails, type Lock, type Violation } from "../engine/vault/types";
@@ -84,6 +84,22 @@ export class DrizzleVaultStore implements VaultStore {
 
   async appendLog(entry: ActionLogEntry) {
     await this.db.insert(actionLog).values({ ...entry, violations: entry.violations satisfies Violation[] });
+  }
+
+  async listLog(userId: string, limit: number): Promise<ActionLogEntry[]> {
+    const rows = await this.db.select().from(actionLog).where(eq(actionLog.userId, userId)).orderBy(desc(actionLog.at)).limit(limit);
+    return rows.map((r) => ({
+      userId: r.userId,
+      actor: r.actor,
+      kind: r.kind,
+      assetId: r.assetId,
+      symbol: r.symbol,
+      notionalUsd: clean(r.notionalUsd),
+      outcome: r.outcome,
+      violations: r.violations as Violation[],
+      gatewayRef: r.gatewayRef ?? undefined,
+      at: r.at,
+    }));
   }
 
   async spentTodayUsd(userId: string, now: Date) {

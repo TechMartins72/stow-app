@@ -73,6 +73,30 @@ describe("SigningGuard against the mock Gateway", () => {
     expect(sell.status).toBe("executed");
   });
 
+  it("buys a tokenized stock with USDC on the stock's own chain", async () => {
+    const { guard, user } = await newUser("stock-buyer");
+    await fund(user, asset("USDC", "base"), "50");
+    const buy = await guard.placeMarketOrder(user, { asset: asset("AAPLC", "base"), side: "buy", amount: "22", actor: "user" });
+    expect(buy).toMatchObject({ status: "executed", result: { status: "complete" } });
+  });
+
+  it("refuses to sign when the price moved past the user's minimum", async () => {
+    const { guard, store, user } = await newUser("slippage");
+    await fund(user, asset("USDC", "base"), "50");
+    const aapl = asset("AAPLC", "base");
+    // $22 buys 0.1 AAPLC at the mock's $220; asking for at least 0.2 means the price "moved".
+    const tooGreedy = await guard.placeMarketOrder(user, { asset: aapl, side: "buy", amount: "22", actor: "user", minQtyOut: "0.2" });
+    expect(tooGreedy).toMatchObject({ status: "blocked", violations: [{ rule: "price_moved" }] });
+    expect(store.log.at(-1)).toMatchObject({ outcome: "blocked", violations: [{ rule: "price_moved" }] });
+
+    const fair = await guard.placeMarketOrder(user, { asset: aapl, side: "buy", amount: "22", actor: "user", minQtyOut: "0.099" });
+    expect(fair.status).toBe("executed");
+
+    // Selling: proceeds must be at least the minimum too.
+    const sellGreedy = await guard.placeMarketOrder(user, { asset: aapl, side: "sell", amount: "0.05", actor: "user", minQtyOut: "100" });
+    expect(sellGreedy).toMatchObject({ status: "blocked", violations: [{ rule: "price_moved" }] });
+  });
+
   it("refuses to sign anything that touches locked funds", async () => {
     const { guard, store, user } = await newUser("locker");
     const usdc = asset("USDC", "solana");

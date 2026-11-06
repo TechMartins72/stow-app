@@ -148,3 +148,27 @@ describe("guardrails", () => {
     expect(rules(sell, c)).toEqual([]);
   });
 });
+
+describe("MemoryVaultStore.listLog", () => {
+  it("returns one user's decisions, newest first, up to the limit", async () => {
+    const { MemoryVaultStore } = await import("./store");
+    const store = new MemoryVaultStore();
+    const entry = (userId: string, iso: string) => ({
+      userId,
+      actor: "user" as const,
+      kind: "transfer" as const,
+      assetId: USDC,
+      symbol: "USDC",
+      notionalUsd: "1",
+      outcome: "blocked" as const,
+      violations: [],
+      at: new Date(iso),
+    });
+    await store.appendLog(entry("u1", "2026-11-01T00:00:00Z"));
+    await store.appendLog(entry("u2", "2026-11-02T00:00:00Z"));
+    await store.appendLog(entry("u1", "2026-11-03T00:00:00Z"));
+    await store.appendLog(entry("u1", "2026-11-02T00:00:00Z"));
+    const log = await store.listLog("u1", 2);
+    expect(log.map((e) => e.at.toISOString().slice(0, 10))).toEqual(["2026-11-03", "2026-11-02"]);
+  });
+});

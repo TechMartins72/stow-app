@@ -7,13 +7,12 @@ import {
   FirstDepositCard,
   GatewayErrorCard,
   HomeSkeleton,
-  LockedBanner,
   NoLocksCard,
   QuickActions,
   SectionHeading,
 } from "./_components/home-sections";
 import { LockCard } from "./_components/lock-card";
-import { formatDate, formatUsd } from "./_lib/format";
+import { formatUsd } from "./_lib/format";
 import { loadHome } from "./_server/home";
 
 export default function HomePage({ searchParams }: PageProps<"/">) {
@@ -43,20 +42,9 @@ async function HomeContent({ searchParams }: Pick<PageProps<"/">, "searchParams"
   const now = new Date();
 
   if (data.holdings.length === 0) return <FirstDepositCard practice={practice} />;
-  const newLock = data.locks.find((l) => l.id === justLocked);
 
   return (
     <div className="space-y-8">
-      {newLock ? (
-        <LockedBanner
-          goalName={newLock.goalName}
-          detail={
-            newLock.parts > 1 && newLock.next
-              ? `The first ${newLock.next.amount} ${newLock.symbol} unlocks on ${formatDate(newLock.next.releaseAt)}, then the rest in ${newLock.parts - 1} more parts.`
-              : `It unlocks on ${formatDate(newLock.unlockAt)}. Until then, it stays put.`
-          }
-        />
-      ) : null}
       <BalanceHero
         total={formatUsd(data.totalUsd)}
         locked={formatUsd(data.lockedUsd)}
@@ -68,7 +56,7 @@ async function HomeContent({ searchParams }: Pick<PageProps<"/">, "searchParams"
       <QuickActions />
 
       <section aria-labelledby="locks-title">
-        <SectionHeading id="locks-title" title="Your locks" action={data.locks.length > 0 ? "See all" : undefined} />
+        <SectionHeading id="locks-title" title="Your locks" action={{ label: "See all", href: "/vault" }} />
         {data.locks.length === 0 ? (
           <NoLocksCard />
         ) : (

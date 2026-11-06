@@ -1,7 +1,8 @@
 import "server-only";
 
 import { dec, min, mul, sum, toDecimalString, ZERO } from "@/engine/decimal";
-import { accessibleBalance, lockedNow, nextRelease, tranchesOf, type Engine, type GuardUser } from "@/engine";
+import { accessibleBalance, lockedNow, type Engine, type GuardUser } from "@/engine";
+import { sortLockViews, toLockView, type LockView } from "@/app/_lib/lock-view";
 import { seedMockDemo } from "./demo-seed";
 import { getCurrentUser } from "./current-user";
 import { getEngine } from "./engine";
@@ -16,24 +17,7 @@ export interface HomeHolding {
   valueUsd: string;
 }
 
-export interface HomeLock {
-  id: string;
-  goalName: string;
-  symbol: string;
-  /** The whole lock, released and not. */
-  amount: string;
-  /** Still locked right now, and its value. */
-  lockedAmount: string;
-  lockedUsd: string;
-  createdAt: Date;
-  unlockAt: Date;
-  /** Number of parts (1 for a one-date lock) and how many have freed themselves. */
-  parts: number;
-  partsReleased: number;
-  /** Share of `amount` already released, 0..1. Display only. */
-  releasedShare: number;
-  next?: { releaseAt: Date; amount: string };
-}
+export type HomeLock = LockView;
 
 export interface HomeData {
   mode: "mock" | "live";
@@ -99,27 +83,6 @@ async function build(engine: Engine, user: GuardUser): Promise<HomeData> {
     // A ratio, not an amount: safe to hand to the UI as a small integer.
     lockedBps: totalUsd > ZERO ? Number((lockedUsd * 10_000n) / totalUsd) : 0,
     holdings,
-    locks: locks
-      .map((l): HomeLock => {
-        const parts = tranchesOf(l);
-        const stillLocked = lockedNow(l, now);
-        const total = dec(l.amount);
-        const next = nextRelease(l, now);
-        return {
-          id: l.id,
-          goalName: l.goalName ?? `${l.symbol} lock`,
-          symbol: l.symbol,
-          amount: l.amount,
-          lockedAmount: toDecimalString(stillLocked),
-          lockedUsd: toDecimalString(mul(stillLocked, priceOf(l.assetId)), 6),
-          createdAt: l.createdAt,
-          unlockAt: l.unlockAt,
-          parts: parts.length,
-          partsReleased: parts.filter((t) => t.releaseAt <= now).length,
-          releasedShare: total > ZERO ? Number(((total - stillLocked) * 10_000n) / total) / 10_000 : 0,
-          next: next ? { releaseAt: next.releaseAt, amount: next.amount } : undefined,
-        };
-      })
-      .sort((a, b) => (a.next?.releaseAt ?? a.unlockAt).getTime() - (b.next?.releaseAt ?? b.unlockAt).getTime()),
+    locks: sortLockViews(locks.map((l) => toLockView(l, now, priceOf(l.assetId)))).active,
   };
 }

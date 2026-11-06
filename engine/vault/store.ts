@@ -21,6 +21,8 @@ export interface VaultStore {
   getGuardrails(userId: string): Promise<Guardrails>;
   setGuardrails(userId: string, guardrails: Guardrails): Promise<void>;
   appendLog(entry: ActionLogEntry): Promise<void>;
+  /** The user's guard decisions (executed, blocked, failed), newest first. */
+  listLog(userId: string, limit: number): Promise<ActionLogEntry[]>;
   /** USD spent today: executed buys and withdrawals since UTC midnight. */
   spentTodayUsd(userId: string, now: Date): Promise<string>;
 }
@@ -62,6 +64,14 @@ export class MemoryVaultStore implements VaultStore {
 
   async appendLog(entry: ActionLogEntry) {
     this.log.push(entry);
+  }
+
+  async listLog(userId: string, limit: number) {
+    return this.log
+      .filter((e) => e.userId === userId)
+      .sort((a, b) => b.at.getTime() - a.at.getTime())
+      .slice(0, limit)
+      .map((e) => ({ ...e }));
   }
 
   async spentTodayUsd(userId: string, now: Date) {

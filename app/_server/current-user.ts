@@ -3,7 +3,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { users } from "@/db/schema";
-import type { Engine, GuardUser } from "@/engine";
+import type { Engine, GuardUser, Wallet } from "@/engine";
 import { getDb } from "./engine";
 import { readSession } from "./session";
 
@@ -26,4 +26,9 @@ export async function getCurrentUser(engine: Engine): Promise<GuardUser & { emai
     }
   }
   return { id: session.userId, gatewayUserId: gatewayUserId!, email: session.email };
+}
+
+/** The user's deposit addresses. Same idempotent call as above; it returns the wallets. */
+export async function getWallets(engine: Engine, user: GuardUser): Promise<Wallet[]> {
+  return (await engine.client.createUser(user.id, engine.guard.signerPublicKey)).wallets;
 }
