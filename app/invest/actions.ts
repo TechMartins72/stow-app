@@ -9,7 +9,8 @@ import { checkBuyAmount, checkSellQty, minAccepted } from "@/app/_lib/trade-poli
 import { getCurrentUser } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
-import { loadMarketAsset } from "@/app/_server/market";
+import { isChartRange } from "@/app/_lib/chart-ranges";
+import { findInvestable, loadChart, loadMarketAsset, type ChartData } from "@/app/_server/market";
 
 type Fail = { ok: false; message: string; requestId?: string };
 
@@ -26,7 +27,7 @@ const Money = z.string().max(32);
 async function context(assetId: string) {
   const engine = getEngine();
   const user = await getCurrentUser(engine);
-  const found = await loadMarketAsset(engine, user, assetId);
+  const found = await loadMarketAsset(engine, user, assetId, { chart: false });
   return { engine, user, found };
 }
 
@@ -36,8 +37,8 @@ export async function quoteBuyAction(input: { assetId: string; amount: string })
   if (!p.success) return { ok: false, message: "Something in the form looks wrong." };
   try {
     const { engine, user, found } = await context(p.data.assetId);
-    if (!found) return { ok: false, message: "That asset can't be bought right now." };
-    if (!found.paying) return { ok: false, message: `There's no USDC on ${found.asset.chain} to pay with.` };
+    if (!found || found.asset.tradability === "sell_only") return { ok: false, message: "That asset can't be bought right now." };
+    if (!found.paying) return { ok: false, message: `There's nothing to pay with on ${found.asset.chain} yet.` };
     const amount = p.data.amount.trim();
     const problem = checkBuyAmount(amount, found.paying.free);
     if (problem) return { ok: false, message: problem };
@@ -93,7 +94,7 @@ export async function buyAction(input: z.input<typeof BuyInput>): Promise<TradeR
   const { amount, minQtyOut, lock } = p.data;
   try {
     const { engine, user, found } = await context(p.data.assetId);
-    if (!found?.paying) return { ok: false, message: "That asset can't be bought right now." };
+    if (!found?.paying || found.asset.tradability === "sell_only") return { ok: false, message: "That asset can't be bought right now." };
     const problem = checkBuyAmount(amount.trim(), found.paying.free);
     if (problem) return { ok: false, message: problem };
 
@@ -170,4 +171,13 @@ function fail(err: unknown, stage: "quote" | "trade"): Fail {
   }
   // The order may have been submitted before the failure, so its outcome is unknown: never retry blindly.
   return { ok: false, message: "We couldn't confirm the order. It hasn't been retried, so check Activity before trying again.", requestId: f.requestId };
+}
+
+/** Candles for the asset page's range tabs. Public market data; returns null when there's none. */
+export async function chartAction(input: { assetId: string; range: string }): Promise<ChartData | null> {
+  if (!Id.safeParse(input.assetId).success || !isChartRange(input.range)) return null;
+  const engine = getEngine();
+  await getCurrentUser(engine); // signed-in users only
+  const asset = await findInvestable(engine, input.assetId);
+  return asset ? loadChart(engine, asset, input.range) : null;
 }

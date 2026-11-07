@@ -19,7 +19,8 @@ const QUICK = ["5", "25", "100"];
 export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: PayingWith | null }) {
   const router = useRouter();
   const toast = useToast();
-  const [side, setSide] = useState<Side>("buy");
+  const buyable = asset.tradability === "buy_sell";
+  const [side, setSide] = useState<Side>(buyable ? "buy" : "sell");
   const [amount, setAmount] = useState("");
   const [qty, setQty] = useState("");
   const [buyQuote, setBuyQuote] = useState<BuyQuote | null>(null);
@@ -46,6 +47,7 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
   const buyError = checkBuyAmount(amount, freeUsdc);
   const sellError = asset.priceUsd ? checkSellQty(qty, asset.free, asset.decimals, asset.priceUsd, asset.ticker) : "No price right now.";
   const canSell = dec(asset.free) > 0n;
+  const cash = paying?.symbol ?? "USDC";
   const network = networkLabel(asset.chain);
 
   function switchSide(s: Side) {
@@ -114,8 +116,10 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
             role="tab"
             type="button"
             aria-selected={side === s}
+            disabled={s === "buy" && !buyable}
+            title={s === "buy" && !buyable ? "New buys are paused for this asset" : undefined}
             onClick={() => switchSide(s)}
-            className={`py-3.5 text-sm font-bold capitalize ${side === s ? "border-b-2 border-primary text-primary" : "text-text-muted hover:text-text"}`}
+            className={`py-3.5 text-sm font-bold capitalize disabled:cursor-not-allowed disabled:opacity-40 ${side === s ? "border-b-2 border-primary text-primary" : "text-text-muted hover:text-text"}`}
           >
             {s}
           </button>
@@ -159,10 +163,10 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
               ))}
             </div>
             <p className="mt-3 text-sm text-text-muted">
-              Paid with USDC on {network}: <span className="num font-semibold text-text">{formatUsd(freeUsdc)}</span> free.{" "}
+              Paid with {cash} on {network}: <span className="num font-semibold text-text">{formatUsd(freeUsdc)}</span> free.{" "}
               {dec(freeUsdc) < dec(MIN_ORDER_USD) ? (
                 <Link href="/add-funds" className="font-semibold text-primary hover:underline">
-                  Add USDC on {network}
+                  Add {cash} on {network}
                 </Link>
               ) : null}
             </p>
@@ -175,7 +179,11 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                   <span className="flex items-center gap-1.5 font-bold">
                     <LockIcon className="size-4 text-locked" /> Buy and lock
                   </span>
-                  <span className="block text-sm text-text-muted">Lock the shares as soon as they arrive, so they can&apos;t be sold on impulse.</span>
+                  <span className="block text-sm text-text-muted">
+                    {asset.assetClass === "stock"
+                      ? "Lock the shares as soon as they arrive, so they can't be sold on impulse."
+                      : `Lock the ${asset.ticker} as soon as it arrives, so it can't be sold on impulse.`}
+                  </span>
                 </span>
               </label>
               {lockIt ? (
@@ -229,7 +237,7 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
             </div>
             <p className="mt-3 text-sm text-text-muted">
               {formatQty(asset.free, asset.decimals)} {asset.ticker} free
-              {dec(asset.locked) > 0n ? ` · ${formatQty(asset.locked, asset.decimals)} locked and can't be sold` : ""}. You&apos;ll receive USDC on {network}.
+              {dec(asset.locked) > 0n ? ` · ${formatQty(asset.locked, asset.decimals)} locked and can't be sold` : ""}. You&apos;ll receive {cash} on {network}.
             </p>
             {qty && sellError ? <p className="mt-2 text-sm text-critical">{sellError}</p> : null}
           </>
@@ -270,7 +278,7 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                 <>
                   <Row label="Price" value={formatUsd(sellQuote.priceUsd)} />
                   <Row label="Fee" value={formatUsd(sellQuote.feeUsd)} />
-                  <Row label="You receive" value={`≈ ${formatUsd(sellQuote.proceedsUsd)} USDC`} strong />
+                  <Row label="You receive" value={`≈ ${formatUsd(sellQuote.proceedsUsd)} ${cash}`} strong />
                 </>
               ) : null}
             </dl>

@@ -6,6 +6,7 @@ import type { Asset, Wallet } from "@/engine";
 import { AppShell } from "@/app/_components/app-shell";
 import { GatewayErrorCard } from "@/app/_components/home-sections";
 import { chainFamily, networkLabel, type ChainFamily } from "@/app/_lib/address";
+import { cashFor, isInvestable, SUPPORTED_CHAINS } from "@/app/_lib/catalog-policy";
 import { getCurrentUser, getWallets } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
@@ -58,10 +59,13 @@ async function AddFundsContent() {
   const cards = await Promise.all(
     wallets.map(async (w) => {
       const family = w.chain_family;
-      const accepted = assets.filter((a) => a.type !== "perp" && chainFamily(a.chain) === family);
+      // What's worth depositing here: each network's cash stablecoin, plus approved crypto on it.
+      const chains = SUPPORTED_CHAINS.filter((c) => chainFamily(c) === family);
+      const cash = chains.map((c) => cashFor(assets, c)).filter((a): a is Asset => Boolean(a));
+      const accepted = [...cash, ...assets.filter((a) => isInvestable(a) && a.asset_class !== "stock" && chainFamily(a.chain) === family)];
       const svg = await QRCode.toString(w.address, { type: "svg", margin: 1, color: { dark: "#060f21", light: "#ffffff" } });
-      const chains = [...new Set(accepted.map((a) => a.chain!).filter(Boolean))];
-      return { wallet: w, family, accepted, svg, net: describe(family, chains) };
+      const acceptedChains = [...new Set(accepted.map((a) => a.chain!).filter(Boolean))];
+      return { wallet: w, family, accepted, svg, net: describe(family, acceptedChains) };
     }),
   );
 

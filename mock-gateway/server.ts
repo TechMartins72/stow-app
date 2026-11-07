@@ -15,16 +15,87 @@ import { payloadDigest, verifyStamp } from "../engine/signing/stamp";
 const ORG_ID = "org_mock";
 const FEE_RATE = dec("0.001"); // 0.1%, charged in USDC
 
-const ASSETS: (Asset & { price: string })[] = [
-  { id: "00000000-0000-4000-8000-000000000001", symbol: "USDC", name: "USD Coin", chain: "solana", venue: "defi", asset_class: "crypto", type: "spot", stable: true, decimals: 6, price: "1" },
-  { id: "00000000-0000-4000-8000-000000000002", symbol: "SOL", name: "Solana", chain: "solana", venue: "defi", asset_class: "crypto", type: "spot", stable: false, decimals: 9, price: "150" },
-  { id: "00000000-0000-4000-8000-000000000003", symbol: "USDC", name: "USD Coin", chain: "base", venue: "defi", asset_class: "crypto", type: "spot", stable: true, decimals: 6, price: "1" },
-  { id: "00000000-0000-4000-8000-000000000004", symbol: "AAPLC", name: "Apple (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "220" },
-  { id: "00000000-0000-4000-8000-000000000006", symbol: "NVDAC", name: "NVIDIA (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "140" },
-  { id: "00000000-0000-4000-8000-000000000007", symbol: "MSFTC", name: "Microsoft (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "430" },
-  { id: "00000000-0000-4000-8000-000000000008", symbol: "TSLAC", name: "Tesla (Coinbase Tokenized Stock)", chain: "base", venue: "defi", asset_class: "stock", type: "spot", stable: false, decimals: 8, price: "250" },
-  { id: "00000000-0000-4000-8000-000000000005", symbol: "BTC-PERP", name: "Bitcoin perpetual", chain: "hypercore-perp", venue: "defi", asset_class: "crypto", type: "perp", stable: false, decimals: 5, price: "100000" },
+type MockAsset = Asset & { price: string };
+const CG = "https://coin-images.coingecko.com/coins/images";
+const STOCK_ABOUT = (company: string) =>
+  `${company} (Coinbase Tokenized Stock) is an onchain certificate that provides economic exposure to shares of ${company} through a tokenized security issued by Coinbase Onchain SPV Ltd.`;
+
+// Shaped like the live catalog (see npm run dev:catalog): `economic_asset_id` keys the
+// market-data endpoints; `tradeable`, `is_active` and `status` gate trading. A few
+// entries exist only so the app's filters have something to hide (a meme coin, a
+// stock and the cash on Robinhood Chain, a perp).
+type MockAssetInput = Pick<MockAsset, "symbol" | "name" | "chain" | "asset_class" | "stable" | "decimals" | "price"> & Partial<MockAsset>;
+const mk = (n: number, a: MockAssetInput): MockAsset => ({
+  id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+  economic_asset_id: `00000000-0000-4000-9000-${String(n).padStart(12, "0")}`,
+  venue: "defi",
+  type: "spot",
+  is_active: true,
+  tradeable: true,
+  status: "active",
+  ...a,
+});
+
+const ASSETS: MockAsset[] = [
+  mk(1, { symbol: "USDC", name: "USD Coin", chain: "solana", asset_class: "crypto", stable: true, decimals: 6, price: "1", icon: `${CG}/6319/small/USDC.png` }),
+  mk(2, { symbol: "SOL", name: "Solana", chain: "solana", asset_class: "crypto", stable: false, decimals: 9, price: "150", icon: `${CG}/4128/small/solana.png`, website: "https://solana.com/", description: "Solana is a high-performance blockchain designed for fast, low-cost transactions." }),
+  mk(3, { symbol: "USDC", name: "USD Coin", chain: "base", asset_class: "crypto", stable: true, decimals: 6, price: "1", icon: `${CG}/6319/small/USDC.png` }),
+  mk(4, { symbol: "AAPLC", name: "Apple", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "220", icon: `${CG}/102175597/small/aapl_200x200.png`, website: "https://www.coinbase.com/tokenize", description: `About Apple (Coinbase Tokenized Stock) (APPLc)
+
+${STOCK_ABOUT("Apple")}` }),
+  mk(6, { symbol: "NVDAC", name: "NVIDIA", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "140", icon: `${CG}/102175596/small/nvda_200x200.png`, website: "https://www.coinbase.com/tokenize", description: STOCK_ABOUT("NVIDIA") }),
+  mk(7, { symbol: "MSFTC", name: "Microsoft", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "430", icon: `${CG}/102178281/small/msft-200.png`, website: "https://www.coinbase.com/tokenize", description: `About Microsoft (Coinbase Tokenized Stock) ([TICKER])
+
+${STOCK_ABOUT("Microsoft")}` }),
+  mk(8, { symbol: "TSLAC", name: "Tesla", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "250", icon: `${CG}/102178285/small/tsla-200.png`, website: "https://www.coinbase.com/tokenize", description: STOCK_ABOUT("[Company]") }),
+  mk(9, { symbol: "SNDKC", name: "SanDisk", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "830", status: "sell_only", icon: `${CG}/102178283/small/sndk-200.png`, description: STOCK_ABOUT("SanDisk") }),
+  mk(10, { symbol: "ETH", name: "Ethereum", chain: "base", asset_class: "crypto", stable: false, decimals: 18, price: "2230", icon: `${CG}/279/small/ethereum.png`, website: "https://www.ethereum.org/", description: "Ethereum is an open platform for decentralized applications, where developers build and run smart contracts." }),
+  mk(11, { symbol: "CBBTC", name: "Coinbase Wrapped Staked BTC", chain: "base", asset_class: "crypto", stable: false, decimals: 8, price: "75690", icon: `${CG}/40143/small/cbbtc.webp`, website: "https://www.coinbase.com/", description: "cbBTC is backed 1:1 by Bitcoin held by Coinbase, so it tracks the price of Bitcoin." }),
+  mk(12, { symbol: "BONK", name: "Bonk", chain: "solana", asset_class: "crypto", stable: false, decimals: 5, price: "0.00002", icon: `${CG}/28600/small/bonk.jpg` }),
+  mk(13, { symbol: "AMD", name: "AMD", chain: "robinhood", asset_class: "stock", stable: false, decimals: 18, price: "160", icon: "https://api.elbstream.com/logos/symbol/AMD?format=png&size=128" }),
+  mk(14, { symbol: "USDG", name: "Global Dollar", chain: "robinhood", asset_class: "crypto", stable: true, decimals: 6, price: "1" }),
+  mk(15, { symbol: "MUC", name: "Micron Technology Inc.", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "690", tradeable: false }),
+  mk(5, { symbol: "BTC-PERP", name: "Bitcoin perpetual", chain: "hypercore-perp", asset_class: "crypto", type: "perp", stable: false, decimals: 5, price: "100000" }),
 ];
+
+const DURATION_MS: Record<string, number> = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000, M: 30 * 86_400_000 };
+const durationMs = (v: string) => {
+  const m = /^(\d+)([smhdM])$/.exec(v);
+  if (!m) throw new HttpError(400, "invalid_argument", `Bad duration ${v}`);
+  return Number(m[1]) * DURATION_MS[m[2]];
+};
+
+/**
+ * A repeatable price history that wanders around and ends exactly at the asset's
+ * practice price, so charts agree with quotes. Display data only.
+ */
+function series(a: MockAsset, window: string, resolution: string) {
+  const step = durationMs(resolution);
+  const count = Math.min(500, Math.max(2, Math.floor(durationMs(window) / step) + 1));
+  const end = Math.floor(Date.now() / step) * step;
+  const seed = a.symbol.split("").reduce((n, c) => n + c.charCodeAt(0), 0);
+  const price = dec(a.price);
+  // Offset from the final price in basis points: a few waves that fade to zero at the end.
+  const bpsAt = (i: number) => {
+    const fade = (count - 1 - i) / (count - 1);
+    return BigInt(Math.round((Math.sin(i / 4 + seed) * 220 + Math.sin(i / 11 + seed / 3) * 380) * fade));
+  };
+  const priceAt = (i: number) => (price * (10_000n + bpsAt(i))) / 10_000n;
+  return Array.from({ length: count }, (_, i) => {
+    const open = i === 0 ? priceAt(0) : priceAt(i - 1);
+    const close = priceAt(i);
+    const hi = open > close ? open : close;
+    const lo = open < close ? open : close;
+    const fmt = (v: bigint) => toDecimalString(v, 8);
+    return {
+      t: new Date(end - (count - 1 - i) * step).toISOString(),
+      open: fmt(open),
+      high: fmt((hi * 10_015n) / 10_000n),
+      low: fmt((lo * 9_985n) / 10_000n),
+      close: fmt(close),
+    };
+  });
+}
 
 interface MockUser extends GatewayUser {
   signerPublicKey: string;
@@ -113,6 +184,26 @@ export function createMockGateway(): Server {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       ).map(({ price, ...asset }) => asset);
       return [200, { data }];
+    }
+
+    // ---- Market data (public, keyed by economic_asset_id) ----
+    if (method === "GET" && path === "/v1/defi/market/prices/history/batch") {
+      const ids = (url.searchParams.get("asset_ids") ?? "").split(",").filter(Boolean);
+      const window = url.searchParams.get("window") ?? "1d";
+      const resolution = url.searchParams.get("resolution") ?? "1h";
+      const results = ids.flatMap((id) => {
+        const a = ASSETS.find((x) => x.economic_asset_id === id);
+        return a ? [{ asset_id: id, symbol: a.symbol, points: series(a, window, resolution).map((p) => ({ t: p.t, price: p.close })) }] : [];
+      });
+      return [200, { window, resolution, results }];
+    }
+    if (method === "GET" && path === "/v1/defi/market/prices/candles") {
+      const id = url.searchParams.get("asset_id");
+      const a = ASSETS.find((x) => x.economic_asset_id === id);
+      if (!a) throw new HttpError(404, "not_found", "unknown symbol");
+      const window = url.searchParams.get("window") ?? "1d";
+      const resolution = url.searchParams.get("resolution") ?? "1h";
+      return [200, { asset_id: id, symbol: a.symbol, window, resolution, candles: series(a, window, resolution) }];
     }
 
     if (!req.headers.authorization?.startsWith("Bearer ")) throw new HttpError(401, "unauthenticated", "Missing token");

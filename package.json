@@ -19,6 +19,7 @@
     "dev:roundtrip": "tsx scripts/dev-roundtrip.ts",
     "dev:lock-demo": "tsx scripts/dev-lock-demo.ts",
     "dev:signer-key": "tsx scripts/dev-signer-key.ts",
+    "dev:catalog": "tsx scripts/dev-catalog.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

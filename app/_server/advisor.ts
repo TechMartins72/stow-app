@@ -3,7 +3,8 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
 import { dec, mul, toDecimalString, ZERO } from "@/engine/decimal";
-import { nextRelease, type Engine, type GuardUser, type ProposedAction } from "@/engine";
+import { nextRelease, type Asset, type Engine, type GuardUser, type ProposedAction } from "@/engine";
+import { cashFor, isInvestable, tradability } from "@/app/_lib/catalog-policy";
 import { parseProfile, suggest, type RiskProfile, type Suggestion, type UpcomingRelease } from "@/app/_lib/advisor";
 import { tickerOf } from "@/app/_lib/trade-policy";
 import { getDb } from "./engine";
@@ -54,7 +55,7 @@ export async function computeSuggestions(engine: Engine, user: GuardUser) {
     free: h.accessible,
   }));
   const stocks = catalog
-    .filter((a) => a.asset_class === "stock" && a.type !== "perp")
+    .filter((a) => a.asset_class === "stock" && isInvestable(a) && tradability(a) === "buy_sell")
     .map((a) => ({ assetId: a.id, ticker: tickerOf({ symbol: a.symbol, chain: a.chain, asset_class: a.asset_class }), chain: a.chain }))
     .sort((a, b) => (a.ticker === "AAPL" ? -1 : b.ticker === "AAPL" ? 1 : a.ticker.localeCompare(b.ticker)));
   const upcoming: UpcomingRelease[] = locks.flatMap((l) => {
@@ -86,7 +87,7 @@ export async function loadAdvisor(engine: Engine, user: GuardUser) {
 function proposed(
   s: Suggestion,
   holdings: Awaited<ReturnType<typeof loadHoldings>>,
-  catalog: { id: string; symbol: string; chain: string | null }[],
+  catalog: Asset[],
 ): ProposedAction | null {
   if (s.action.kind === "sell") {
     const { assetId, qty } = s.action;
@@ -105,7 +106,7 @@ function proposed(
   if (s.action.kind === "buy") {
     const { assetId, amountUsd } = s.action;
     const asset = catalog.find((a) => a.id === assetId);
-    const usdc = catalog.find((a) => a.symbol === "USDC" && a.chain === asset?.chain);
+    const usdc = asset ? cashFor(catalog, asset.chain) : undefined;
     if (!asset || !usdc || dec(amountUsd) <= ZERO) return null;
     return {
       kind: "buy",
@@ -113,7 +114,7 @@ function proposed(
       assetId,
       symbol: asset.symbol,
       productType: "spot",
-      debits: [{ assetId: usdc.id, symbol: "USDC", qty: amountUsd }],
+      debits: [{ assetId: usdc.id, symbol: usdc.symbol, qty: amountUsd }],
       notionalUsd: amountUsd,
     };
   }

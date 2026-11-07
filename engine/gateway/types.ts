@@ -28,6 +28,15 @@ export interface Asset {
   type?: ProductType;
   stable?: boolean;
   decimals?: number;
+  /** Id used by the public market-data endpoints. */
+  economic_asset_id?: string;
+  tradeable?: boolean;
+  is_active?: boolean;
+  /** "active", or "sell_only" when new buys are closed. */
+  status?: string;
+  icon?: string;
+  description?: string;
+  website?: string;
   [key: string]: unknown;
 }
 
@@ -162,4 +171,41 @@ export interface TransactionRow {
 export interface Page<T> {
   data: T[];
   pagination?: { next_cursor: string | null; limit?: number };
+}
+
+// ---- Market data (public, no token) ----
+// https://docs.truemarkets.co/market-data/overview/ - assets are identified by the
+// catalog's `economic_asset_id`, not the Gateway asset `id`. Prices are decimal strings.
+
+export interface PricePoint {
+  t: string;
+  price: string;
+}
+
+export interface PriceSeries {
+  asset_id: string;
+  symbol: string;
+  points: PricePoint[];
+}
+
+export interface PriceHistoryBatch {
+  window: string;
+  resolution: string;
+  results: PriceSeries[];
+}
+
+export interface Candle {
+  t: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+}
+
+export interface CandleSeries {
+  asset_id?: string;
+  symbol: string;
+  window: string;
+  resolution: string;
+  candles: Candle[];
 }

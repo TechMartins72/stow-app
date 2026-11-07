@@ -3,6 +3,7 @@ import type { TokenProvider } from "./token";
 import type {
   Asset,
   BalanceItem,
+  CandleSeries,
   CreateOrderRequest,
   CreateOrderResponse,
   CreateTransferRequest,
@@ -10,6 +11,8 @@ import type {
   OrderDetail,
   OrderStatus,
   Page,
+  PriceHistoryBatch,
+  PriceSeries,
   QuoteRequest,
   QuoteResponse,
   TransactionRow,
@@ -46,6 +49,26 @@ export class GatewayClient {
   async listAssets(filter: { asset_class?: string; product_type?: string } = {}): Promise<Asset[]> {
     const page = await this.get<Page<Asset>>("/v1/gateway/assets", { query: filter, auth: false });
     return page.data;
+  }
+
+  // ---- Market data (public) ----
+
+  /** Price points for several assets in one call. Ids are catalog `economic_asset_id`s. */
+  async priceHistoryBatch(economicAssetIds: string[], window: string, resolution: string): Promise<PriceSeries[]> {
+    if (economicAssetIds.length === 0) return [];
+    const res = await this.get<PriceHistoryBatch>("/v1/defi/market/prices/history/batch", {
+      query: { asset_ids: economicAssetIds.join(","), window, resolution },
+      auth: false,
+    });
+    return res.results ?? [];
+  }
+
+  /** OHLC candles for one asset, e.g. window "1M" at resolution "1d". */
+  async candles(economicAssetId: string, window: string, resolution: string): Promise<CandleSeries> {
+    return this.get<CandleSeries>("/v1/defi/market/prices/candles", {
+      query: { asset_id: economicAssetId, window, resolution },
+      auth: false,
+    });
   }
 
   // ---- Users ----
