@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { VaultMark } from "@/app/_components/icons";
+import { readSession } from "@/app/_server/session";
 import { verifyLinkAction } from "@/app/signin/actions";
+import { SignInButton } from "./submit-button";
 
 export const metadata: Metadata = { title: "Sign in · Portfolio Vault", robots: { index: false } };
 
@@ -31,10 +34,27 @@ async function VerifyBody({ searchParams }: Pick<PageProps<"/auth/verify">, "sea
   const token = typeof params.token === "string" ? params.token : "";
 
   if (params.error || !token) {
+    // A used link on a browser that's already signed in isn't a problem: say so.
+    await connection();
+    const session = await readSession();
+    if (session) {
+      return (
+        <div role="status" className="mt-6">
+          <h1 className="display text-2xl">You&apos;re already signed in</h1>
+          <p className="mt-2 text-text-muted">This link was already used, but this browser is signed in, so there&apos;s nothing else to do.</p>
+          <Link href="/" className="mt-6 block rounded-xl bg-primary px-[22px] py-[15px] text-center font-semibold text-white hover:bg-primary-hover">
+            Go to my savings
+          </Link>
+        </div>
+      );
+    }
     return (
       <div role="alert" className="mt-6">
-        <h1 className="display text-2xl">This link has expired</h1>
-        <p className="mt-2 text-text-muted">Sign-in links work once and only for 15 minutes. Ask for a new one.</p>
+        <h1 className="display text-2xl">This link can&apos;t be used</h1>
+        <p className="mt-2 text-text-muted">
+          Sign-in links work once and only for 15 minutes, so this one was already used or has expired. If you asked for several, use
+          the newest email.
+        </p>
         <Link href="/signin" className="mt-6 block rounded-xl bg-primary px-[22px] py-[15px] text-center font-semibold text-white hover:bg-primary-hover">
           Get a new link
         </Link>
@@ -47,9 +67,7 @@ async function VerifyBody({ searchParams }: Pick<PageProps<"/auth/verify">, "sea
       <h1 className="display text-2xl">Welcome back</h1>
       <p className="mt-2 text-text-muted">Tap below to finish signing in on this device.</p>
       <input type="hidden" name="token" value={token} />
-      <button type="submit" className="mt-6 w-full rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover">
-        Sign in to Portfolio Vault
-      </button>
+      <SignInButton />
     </form>
   );
 }

@@ -24,7 +24,7 @@ Design document (screens, flows, design system, API mapping): https://claude.ai/
   - `vault/rules.ts` - pure lock and guardrail checks; `vault/locks.ts` - create and release locks
   - `vault/schedule.ts` - release schedules (parts freed on their dates) and `lockedNow`
   - `decimal.ts` - fixed-point money math
-- `db/` - Drizzle schema, migrations (`db/migrations`) and the Postgres `VaultStore`. Postgres is Supabase via the transaction pooler (port 6543, so `prepare: false`). Every table has RLS on with no policies so Supabase's public Data API sees nothing; the app connects as the table owner. Without `DATABASE_URL` the app falls back to an in-memory store.
+- `db/` - Drizzle schema, migrations (`db/migrations`) and the Postgres `VaultStore`. Postgres is Supabase via the transaction pooler (port 6543, so `prepare: false`). Keep the `idle_timeout` / `max_lifetime` / `queue_timeout` settings in `db/client.ts`: without them, connections the pooler silently dropped made every signed-in page hang after a quiet spell. Every table has RLS on with no policies so Supabase's public Data API sees nothing; the app connects as the table owner. Without `DATABASE_URL` the app falls back to an in-memory store.
 - `mock-gateway/` - local Gateway stand-in that verifies stamps
 - `scripts/` - dev scripts (in-memory store)
 - `app/` - Next.js UI: Home (`page.tsx`), New lock wizard (`vault/new/`), sign-in (`signin/`, `auth/verify/`); server loaders in `app/_server/`, shared lock policy in `app/_lib/lock-policy.ts`

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requestLoginLink, signInWithToken, signOut, startSession } from "@/app/_server/auth-core";
 import { sendSignInEmail } from "@/app/_server/email";
 import { flash } from "@/app/_server/flash";
-import { appUrl, getAuthStore, setSessionCookie, takeSessionCookie } from "@/app/_server/session";
+import { appUrl, getAuthStore, readSession, setSessionCookie, takeSessionCookie } from "@/app/_server/session";
 
 export type LinkState =
   | { status: "idle" }
@@ -38,7 +38,15 @@ export async function requestLinkAction(_prev: LinkState, form: FormData): Promi
 export async function verifyLinkAction(form: FormData): Promise<void> {
   const token = String(form.get("token") ?? "");
   const result = token ? await signInWithToken(getAuthStore(), token, new Date()) : { ok: false as const };
-  if (!result.ok) redirect("/auth/verify?error=expired");
+  if (!result.ok) {
+    // Used or expired, but this browser is already signed in (e.g. a second click,
+    // or an older email in the same thread): carry on rather than alarm them.
+    if (await readSession()) {
+      await flash({ tone: "info", title: "You're already signed in" });
+      redirect("/");
+    }
+    redirect("/auth/verify?error=expired");
+  }
   await setSessionCookie(result.sessionToken);
   await flash({ tone: "success", title: "You're signed in" });
   redirect("/");

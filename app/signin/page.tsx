@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { readSession } from "@/app/_server/session";
 import { PadlockMotif, VaultMark } from "@/app/_components/icons";
 import { SignInForm } from "./signin-form";
 
 export const metadata: Metadata = { title: "Sign in · Portfolio Vault" };
+
+/** A browser that's still signed in (sessions last 30 days) goes straight Home. */
+async function SendHomeIfSignedIn() {
+  await connection(); // per-request: reads the cookie and the clock
+  if (await readSession()) redirect("/");
+  return null;
+}
 
 export default function SignInPage() {
   const practice = process.env.GATEWAY_MODE !== "live";
@@ -42,6 +53,9 @@ export default function SignInPage() {
       <main className="flex items-center justify-center bg-surface px-4 py-10 text-text sm:px-6 lg:rounded-l-[32px]">
         <div className="w-full max-w-sm rounded-[24px] bg-surface-raised p-6 shadow-[0_24px_60px_-30px_rgba(6,15,33,0.35)] sm:p-8">
           <SignInForm practice={practice} />
+          <Suspense fallback={null}>
+            <SendHomeIfSignedIn />
+          </Suspense>
         </div>
       </main>
     </div>
