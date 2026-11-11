@@ -6,6 +6,8 @@ A savings app on the True Markets Gateway API. Users lock funds (crypto, stablec
 
 Design document (screens, flows, design system, API mapping): https://claude.ai/artifact/MsyvazePUYWUAU1ybDBtN5
 
+**New to this project? Read `docs/HANDOFF.md` first**: what's built, why, what we learned about the True Markets API, decisions already made, and what's next.
+
 ## Commands
 
 - `npm run mock` - start the mock Gateway on http://localhost:4010 (default for everything below)
