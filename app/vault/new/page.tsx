@@ -3,14 +3,15 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { GatewayErrorCard } from "@/app/_components/home-sections";
-import { VaultMark } from "@/app/_components/icons";
+import { StowMark } from "@/app/_components/icons";
 import { getCurrentUser } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
 import { loadLockable } from "@/app/_server/wallet";
 import { NewLockWizard } from "./new-lock-wizard";
+import { LoadingNote } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "New lock · Portfolio Vault" };
+export const metadata: Metadata = { title: "New plan · Stow" };
 
 /** A focused flow: no main nav, just a way out. */
 export default function NewLockPage() {
@@ -18,8 +19,8 @@ export default function NewLockPage() {
     <div className="min-h-dvh">
       <header className="flex items-center justify-between bg-frame px-4 py-3 text-frame-text sm:px-6">
         <div className="flex items-center gap-2.5">
-          <VaultMark className="size-8" />
-          <span className="display text-lg">New lock</span>
+          <StowMark className="size-8" />
+          <span className="display text-lg">New savings goal or budget</span>
         </div>
         <Link
           href="/"
@@ -47,7 +48,11 @@ async function WizardLoader() {
     const failure = gatewayFailure(engine, err);
     return (
       <div className="mx-auto max-w-xl">
-        <GatewayErrorCard reason={failure.reason} mode={failure.mode} requestId={failure.requestId} />
+        <GatewayErrorCard
+          reason={failure.reason}
+          mode={failure.mode}
+          requestId={failure.requestId}
+        />
       </div>
     );
   }
@@ -56,10 +61,24 @@ async function WizardLoader() {
     return (
       <div className="mx-auto max-w-xl rounded-[20px] border border-border bg-surface-raised p-6">
         <h2 className="display text-2xl">Nothing to lock yet</h2>
-        <p className="mt-2 text-text-muted">Everything you hold is already locked, or your wallet is empty. Add funds first.</p>
-        <Link href="/" className="mt-5 inline-block rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white">
-          Back to Home
-        </Link>
+        <p className="mt-2 text-text-muted">
+          Everything you hold is already locked, or your wallet is empty. Add
+          funds first.
+        </p>
+        <div className="flex gap-4">
+          <Link
+            href="/"
+            className="mt-5 inline-block rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white"
+          >
+            Back to Home
+          </Link>
+          <Link
+            href="/add-funds"
+            className="mt-5 inline-block rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white"
+          >
+            Deposit
+          </Link>
+        </div>
       </div>
     );
   }
@@ -69,7 +88,8 @@ async function WizardLoader() {
 
 function WizardSkeleton() {
   return (
-    <div aria-busy aria-label="Loading" className="mx-auto max-w-xl space-y-3">
+    <div aria-busy aria-label="Loading what you can put away" className="mx-auto max-w-xl space-y-3">
+      <LoadingNote label="Loading what you can put away" />
       <div className="mb-8 h-6 animate-pulse rounded-full bg-border/60" />
       <div className="h-9 w-2/3 animate-pulse rounded-xl bg-border/60" />
       <div className="h-[72px] animate-pulse rounded-2xl bg-border/60" />

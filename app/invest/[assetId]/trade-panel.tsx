@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { dec } from "@/engine/decimal";
 import { networkLabel } from "@/app/_lib/address";
 import { formatDate, formatQty, formatUsd } from "@/app/_lib/format";
@@ -12,9 +12,12 @@ import type { MarketAsset, PayingWith } from "@/app/_server/market";
 import { LockIcon } from "@/app/_components/icons";
 import { useToast } from "@/app/_components/toaster";
 import { buyAction, quoteBuyAction, quoteSellAction, sellAction, type BuyQuote, type SellQuote, type TradeResult } from "../actions";
+import { Busy } from "@/app/_components/spinner";
 
 type Side = "buy" | "sell";
 const QUICK = ["5", "25", "100"];
+/** Renewals of an expired quote in a row before the panel waits for a tap. */
+const MAX_AUTO_RENEWALS = 3;
 
 export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: PayingWith | null }) {
   const router = useRouter();
@@ -36,11 +39,28 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
   const secondsLeft = quote?.ok ? Math.max(0, Math.ceil((quotedAt + QUOTE_TTL_MS - now) / 1000)) : 0;
   const expired = quote?.ok === true && secondsLeft === 0;
 
-  // Tick once a second while a quote is on screen, so its countdown is honest.
+  // Expired quotes renew themselves ("Getting a new quote…"), a few times in a row at most,
+  // so an idle page doesn't fetch quotes forever. Any tap of the button resets the count.
+  const autoRenewals = useRef(0);
+
+  // Tick once a second while a quote is on screen, so its countdown is honest; on expiry, renew.
   useEffect(() => {
     if (!quote?.ok) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const expiresAt = quote.quotedAt + QUOTE_TTL_MS;
+    const t = setInterval(() => {
+      const at = Date.now();
+      setNow(at);
+      if (at >= expiresAt) {
+        clearInterval(t);
+        if (autoRenewals.current < MAX_AUTO_RENEWALS) {
+          autoRenewals.current += 1;
+          getQuote(true);
+        }
+      }
+    }, 1000);
     return () => clearInterval(t);
+    // getQuote is recreated every render; the quote it renews is the one this timer belongs to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quote]);
 
   const freeUsdc = paying?.free ?? "0";
@@ -57,7 +77,8 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
     setSellQuote(null);
   }
 
-  function getQuote() {
+  function getQuote(auto = false) {
+    if (!auto) autoRenewals.current = 0;
     setResult(null);
     start(async () => {
       if (side === "buy") setBuyQuote(await quoteBuyAction({ assetId: asset.assetId, amount }));
@@ -262,7 +283,7 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                 className={`num rounded-full px-2.5 py-0.5 text-xs font-bold ${expired ? "bg-critical-bg text-critical" : secondsLeft <= 5 ? "bg-warning-bg text-warning" : "bg-hero/15 text-hero"}`}
                 aria-live="polite"
               >
-                {expired ? "Expired" : `${secondsLeft}s`}
+                {expired ? busy ? <Busy>Getting a new quote…</Busy> : "Expired" : `${secondsLeft}s`}
               </span>
             </div>
             <dl className="mt-3 space-y-1.5 text-sm">
@@ -309,17 +330,17 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
                 >
                   {side === "buy" && lockIt ? <LockIcon className="size-5" /> : null}
-                  {busy ? "Placing order…" : side === "buy" ? (lockIt ? "Buy and lock" : "Buy now") : "Sell now"}
+                  {busy ? <Busy>Placing order…</Busy> : side === "buy" ? (lockIt ? "Buy and lock" : "Buy now") : "Sell now"}
                 </button>
               </>
             ) : (
               <button
                 type="button"
-                onClick={getQuote}
+                onClick={() => getQuote()}
                 disabled={busy || (side === "buy" ? !!buyError : !!sellError)}
                 className="flex-1 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {busy ? "Getting a quote…" : expired ? "Refresh quote" : "Get a quote"}
+                {busy ? <Busy>{expired ? "Getting a new quote…" : "Getting a quote…"}</Busy> : expired ? "Get a new quote" : "Get a quote"}
               </button>
             )}
           </div>

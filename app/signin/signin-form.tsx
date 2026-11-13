@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { demoSignInAction, requestLinkAction, type LinkState } from "./actions";
+import { Busy } from "@/app/_components/spinner";
 
 export function SignInForm({ practice }: { practice: boolean }) {
   const [state, sendLink, sending] = useActionState<LinkState, FormData>(requestLinkAction, { status: "idle" });
@@ -61,7 +62,7 @@ export function SignInForm({ practice }: { practice: boolean }) {
           disabled={sending}
           className="mt-2 w-full rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
         >
-          {sending ? "Sending…" : "Email me a sign-in link"}
+          {sending ? <Busy>Sending…</Busy> : "Email me a sign-in link"}
         </button>
       </form>
 

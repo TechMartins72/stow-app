@@ -23,12 +23,13 @@ import {
 import type { LockableAsset } from "@/app/_server/wallet";
 import { LockIcon, PadlockMotif } from "@/app/_components/icons";
 import { createLockAction, type CreateLockInput } from "./actions";
+import { Busy } from "@/app/_components/spinner";
 
 /** A date picked as "N days from now" (recomputed at submit) or a calendar date. */
 type When = { kind: "preset"; days: number } | { kind: "date"; value: string };
 type Mode = "once" | "parts";
 
-const STEPS = ["Amount", "Unlock", "Name", "Review"] as const;
+const STEPS = ["Amount", "Plan", "Name", "Review"] as const;
 const NAME_IDEAS = ["Rent", "Monthly budget", "Emergency fund", "New laptop", "School fees"];
 const CHAIN_LABEL: Record<string, string> = { solana: "Solana", base: "Base", ethereum: "Ethereum" };
 const FIRST_RELEASE_PRESETS = [
@@ -213,23 +214,23 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
 
         {step === 1 ? (
           <section>
-            <StepHeading ref={headingRef} title="How should it unlock?" hint={`Locked ${qty(total)}.`} />
+            <StepHeading ref={headingRef} title="Savings goal or budget?" hint={`Putting away ${qty(total)}.`} />
 
-            <div role="radiogroup" aria-label="Unlock style" className="grid grid-cols-2 gap-1 rounded-2xl bg-border/60 p-1">
-              <Segment checked={mode === "once"} onClick={() => setMode("once")} title="All at once" sub="On one date" />
+            <div role="radiogroup" aria-label="Plan type" className="grid grid-cols-2 gap-1 rounded-2xl bg-border/60 p-1">
+              <Segment checked={mode === "once"} onClick={() => setMode("once")} title="Savings goal" sub="All of it on one date" />
               <Segment
                 checked={mode === "parts"}
                 onClick={() => asset.stable && setMode("parts")}
                 disabled={!asset.stable}
-                title="In parts"
-                sub={asset.stable ? "Like a monthly budget" : "Stablecoins only"}
+                title="Budget"
+                sub={asset.stable ? "Paid back to you in parts" : "Dollars (USDC) only"}
               />
             </div>
 
             {mode === "once" ? (
               <div className="mt-6">
                 <fieldset>
-                  <legend className="mb-3 text-sm font-semibold">Unlock on</legend>
+                  <legend className="mb-3 text-sm font-semibold">Free it up on</legend>
                   <div className="grid grid-cols-2 gap-3">
                     {LOCK_PRESETS.map((p) => (
                       <Choice
@@ -261,7 +262,7 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
             ) : (
               <div className="mt-6 space-y-6">
                 <fieldset>
-                  <legend className="mb-3 text-sm font-semibold">Release each time</legend>
+                  <legend className="mb-3 text-sm font-semibold">Pay me back each time</legend>
                   <div className="flex flex-wrap gap-2">
                     {SCHEDULE_PERCENTS.map((p) => (
                       <Pill key={p} selected={split.kind === "percent" && split.percent === p} onClick={() => setSplit({ kind: "percent", percent: p })}>
@@ -303,7 +304,7 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
                 </fieldset>
 
                 <fieldset>
-                  <legend className="mb-3 text-sm font-semibold">First release</legend>
+                  <legend className="mb-3 text-sm font-semibold">First pay-out</legend>
                   <div className="flex flex-wrap gap-2">
                     {FIRST_RELEASE_PRESETS.map((p) => (
                       <Pill key={p.days} selected={first.kind === "preset" && first.days === p.days} onClick={() => setFirst({ kind: "preset", days: p.days })}>
@@ -324,7 +325,7 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
                 {schedule ? (
                   <div className="rounded-2xl border border-border bg-surface-raised p-4">
                     <p className="text-sm font-bold">
-                      {schedule.length} releases, the last on {formatDate(schedule.at(-1)!.releaseAt)}
+                      {schedule.length} pay-outs, the last on {formatDate(schedule.at(-1)!.releaseAt)}
                     </p>
                     <ScheduleList schedule={schedule} total={total} unit={asset.symbol} decimals={asset.decimals} />
                   </div>
@@ -340,7 +341,11 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
 
         {step === 2 ? (
           <section>
-            <StepHeading ref={headingRef} title="What are you saving for?" hint="A name helps you keep the promise." />
+            <StepHeading
+              ref={headingRef}
+              title={mode === "parts" ? "What's this budget for?" : "What are you saving for?"}
+              hint="A name helps you keep the promise."
+            />
             <label htmlFor="goal" className="sr-only">
               Lock name
             </label>
@@ -368,7 +373,7 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
             <div className="relative overflow-hidden rounded-[24px] bg-hero p-6">
               <PadlockMotif className="pointer-events-none absolute -right-8 -bottom-10 size-48 text-white/15" />
               <p className="relative text-sm font-semibold text-frame">{goalName.trim()}</p>
-              <p className="num display relative mt-1 text-[34px] leading-tight text-white">{qty(total)}</p>
+              <p className="num display relative mt-1 text-[calc(34px*var(--fs))] leading-tight text-white">{qty(total)}</p>
               <p className="num relative text-sm font-semibold text-frame">About {formatUsd(valueUsd)} today</p>
               <dl className="relative mt-5 grid grid-cols-2 gap-4 border-t border-frame/15 pt-4 text-frame">
                 {schedule ? (
@@ -469,7 +474,7 @@ export function NewLockWizard({ assets, nowIso }: { assets: LockableAsset[]; now
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {step === 3 ? <LockIcon className="size-5" /> : null}
-            {step < 3 ? "Continue" : submitting ? "Locking…" : `Lock ${qty(total || "0")}`}
+            {step < 3 ? "Continue" : submitting ? <Busy>Locking…</Busy> : `Lock ${qty(total || "0")}`}
           </button>
         </div>
         {step === 2 && nameError && goalName ? <p className="mt-2 text-sm text-critical">{nameError}</p> : null}
@@ -494,7 +499,7 @@ function ScheduleList({ schedule, total, unit, decimals }: { schedule: Tranche[]
         row ? (
           <li key={row.i} className="flex items-center justify-between gap-3 py-2">
             <span className="flex items-center gap-2">
-              <span className="num grid size-6 place-items-center rounded-full bg-locked/10 text-[11px] font-bold text-locked dark:bg-locked/30 dark:text-frame-text">
+              <span className="num grid size-6 place-items-center rounded-full bg-locked/10 text-[calc(11px*var(--fs))] font-bold text-locked dark:bg-locked/30 dark:text-frame-text">
                 {row.i + 1}
               </span>
               {formatDate(row.t.releaseAt)}
@@ -516,7 +521,7 @@ function ScheduleList({ schedule, total, unit, decimals }: { schedule: Tranche[]
 function StepHeading({ ref, title, hint }: { ref: React.Ref<HTMLHeadingElement>; title: string; hint?: string }) {
   return (
     <div className="mb-5">
-      <h2 ref={ref} tabIndex={-1} className="display text-[26px] leading-tight outline-none">
+      <h2 ref={ref} tabIndex={-1} className="display text-[calc(26px*var(--fs))] leading-tight outline-none">
         {title}
       </h2>
       {hint ? <p className="num mt-1 text-sm text-text-muted">{hint}</p> : null}

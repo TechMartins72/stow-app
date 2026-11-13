@@ -8,8 +8,9 @@ import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
 import { loadMarket } from "@/app/_server/market";
 import { MarketList } from "./market-list";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Invest · Portfolio Vault" };
+export const metadata: Metadata = { title: "Invest · Stow" };
 
 export default function InvestPage() {
   return (
@@ -17,9 +18,9 @@ export default function InvestPage() {
       <div className="mx-auto max-w-3xl">
         <header className="mb-6">
           <p className="text-sm font-semibold text-text-muted">Tokenized stocks and crypto, paid in USDC</p>
-          <h1 className="display text-[28px] leading-tight sm:text-[32px]">Invest</h1>
+          <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Invest</h1>
         </header>
-        <Suspense fallback={<div aria-busy aria-label="Loading the market" className="h-[520px] animate-pulse rounded-[20px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading the market" className="h-[520px] rounded-[20px]" />}>
           <Market />
         </Suspense>
       </div>

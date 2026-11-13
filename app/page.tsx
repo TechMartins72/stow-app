@@ -3,25 +3,25 @@ import { Suspense } from "react";
 import { AppShell } from "./_components/app-shell";
 import { BalanceHero } from "./_components/balance-hero";
 import {
-  AdvisorCard,
-  FirstDepositCard,
-  GatewayErrorCard,
-  HomeSkeleton,
-  NoLocksCard,
-  QuickActions,
-  SectionHeading,
-} from "./_components/home-sections";
-import { LockCard } from "./_components/lock-card";
+  AccountSummary,
+  ComingUp,
+  HoldingsList,
+  LearnCard,
+  MarketMovers,
+  RecentActivity,
+  VaultSnippet,
+} from "./_components/home-panels";
+import { AdvisorCard, FirstDepositCard, GatewayErrorCard, HomeSkeleton, QuickActions } from "./_components/home-sections";
 import { formatUsd } from "./_lib/format";
 import { loadHome } from "./_server/home";
 
 export default function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <AppShell active="/">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <header className="mb-6">
           <p className="text-sm font-semibold text-text-muted">Welcome back</p>
-          <h1 className="display text-[28px] leading-tight sm:text-[32px]">Your savings</h1>
+          <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Your savings &amp; budgets</h1>
         </header>
         <Suspense fallback={<HomeSkeleton />}>
           <HomeContent searchParams={searchParams} />
@@ -40,35 +40,45 @@ async function HomeContent({ searchParams }: Pick<PageProps<"/">, "searchParams"
   const { data } = result;
   const practice = data.mode === "mock";
   const now = new Date();
-
-  if (data.holdings.length === 0) return <FirstDepositCard practice={practice} />;
+  const funded = data.holdings.length > 0;
 
   return (
-    <div className="space-y-8">
-      <BalanceHero
-        total={formatUsd(data.totalUsd)}
-        locked={formatUsd(data.lockedUsd)}
-        accessible={formatUsd(data.accessibleUsd)}
-        lockedPercent={data.lockedBps / 100}
-        practice={practice}
-      />
+    <div className="space-y-6">
+      {funded ? (
+        <BalanceHero
+          total={formatUsd(data.totalUsd)}
+          locked={formatUsd(data.lockedUsd)}
+          accessible={formatUsd(data.accessibleUsd)}
+          lockedPercent={data.lockedBps / 100}
+          practice={practice}
+        />
+      ) : (
+        <FirstDepositCard practice={practice} />
+      )}
 
       <QuickActions />
 
-      <section aria-labelledby="locks-title">
-        <SectionHeading id="locks-title" title="Your locks" action={{ label: "See all", href: "/vault" }} />
-        {data.locks.length === 0 ? (
-          <NoLocksCard />
-        ) : (
-          <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-3">
-            {data.locks.map((lock) => (
-              <LockCard key={lock.id} lock={lock} now={now} highlight={lock.id === justLocked} />
-            ))}
-          </div>
-        )}
-      </section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+        <div className="min-w-0 space-y-8">
+          {funded ? (
+            <AccountSummary slices={data.allocation} assetCount={data.holdings.length} lockCount={data.locks.length} next={data.upcoming[0]} />
+          ) : null}
 
-      <AdvisorCard />
+          <VaultSnippet locks={data.locks} counts={data.vault} lockedUsd={data.lockedUsd} now={now} highlight={justLocked} />
+
+          {funded ? <HoldingsList holdings={data.holdings} /> : null}
+
+          <MarketMovers movers={data.movers} />
+
+          <RecentActivity items={data.activity} />
+        </div>
+
+        <aside className="space-y-6" aria-label="At a glance">
+          {data.locks.length > 0 ? <ComingUp releases={data.upcoming} now={now} /> : null}
+          <LearnCard />
+          {data.advisorEnabled ? <AdvisorCard /> : null}
+        </aside>
+      </div>
     </div>
   );
 }

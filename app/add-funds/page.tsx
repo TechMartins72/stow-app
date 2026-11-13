@@ -12,8 +12,9 @@ import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
 import { CopyButton } from "./copy-button";
 import { PracticeFundsButton } from "./practice-funds-button";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Add funds · Portfolio Vault" };
+export const metadata: Metadata = { title: "Add funds · Stow" };
 
 // Which networks each wallet covers comes from the live asset catalog, not a hard-coded list:
 // one Solana address, and one EVM address that is the same on every EVM chain True Markets supports.
@@ -32,9 +33,9 @@ export default function AddFundsPage() {
       <div className="mx-auto max-w-4xl">
         <header className="mb-6">
           <p className="text-sm font-semibold text-text-muted">From any wallet or exchange</p>
-          <h1 className="display text-[28px] leading-tight sm:text-[32px]">Add funds</h1>
+          <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Add funds</h1>
         </header>
-        <Suspense fallback={<div aria-busy aria-label="Loading your addresses" className="h-[480px] animate-pulse rounded-[24px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading your addresses" className="h-[480px] rounded-[24px]" />}>
           <AddFundsContent />
         </Suspense>
       </div>

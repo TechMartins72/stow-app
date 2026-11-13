@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { VaultMark } from "@/app/_components/icons";
+import { StowMark } from "@/app/_components/icons";
 import { readSession } from "@/app/_server/session";
 import { verifyLinkAction } from "@/app/signin/actions";
 import { SignInButton } from "./submit-button";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Sign in · Portfolio Vault", robots: { index: false } };
+export const metadata: Metadata = { title: "Sign in · Stow", robots: { index: false } };
 
 /**
  * Where emailed links land. Signing in takes a click (a POST), so mail
@@ -18,10 +19,10 @@ export default function VerifyPage({ searchParams }: PageProps<"/auth/verify">) 
     <div className="grid min-h-dvh place-items-center bg-frame px-4 py-10">
       <div className="w-full max-w-sm rounded-[24px] bg-surface-raised p-6 text-text sm:p-8">
         <div className="flex items-center gap-2.5">
-          <VaultMark className="size-9" />
-          <span className="display text-lg">Portfolio Vault</span>
+          <StowMark className="size-9" />
+          <span className="wordmark text-[calc(17px*var(--fs))]">Stow</span>
         </div>
-        <Suspense fallback={<div className="mt-6 h-32 animate-pulse rounded-xl bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Checking your sign-in link" className="mt-6 h-32 rounded-xl" />}>
           <VerifyBody searchParams={searchParams} />
         </Suspense>
       </div>
@@ -43,7 +44,7 @@ async function VerifyBody({ searchParams }: Pick<PageProps<"/auth/verify">, "sea
           <h1 className="display text-2xl">You&apos;re already signed in</h1>
           <p className="mt-2 text-text-muted">This link was already used, but this browser is signed in, so there&apos;s nothing else to do.</p>
           <Link href="/" className="mt-6 block rounded-xl bg-primary px-[22px] py-[15px] text-center font-semibold text-white hover:bg-primary-hover">
-            Go to my savings
+            Go to my savings &amp; budgets
           </Link>
         </div>
       );

@@ -1,6 +1,8 @@
 @AGENTS.md
 
-# Portfolio Vault
+# Stow (formerly Portfolio Vault)
+
+The product name shown to users is **Stow**; the package, repo and `pv_session` cookie keep the old name. Logo files are in `public/brand/`, the in-app mark is `StowMark` in `app/_components/icons.tsx`, and the wordmark uses the `.wordmark` class (Michroma).
 
 A savings app on the True Markets Gateway API. Users lock funds (crypto, stablecoins, tokenized stocks) until a maturity date; the app refuses to co-sign anything that would move locked funds. Hackathon: "Build the Next Fintech App" (True Markets), submissions due 2026-11-29. Judged on UI/UX, production readiness and uniqueness.
 
@@ -26,7 +28,7 @@ Design document (screens, flows, design system, API mapping): https://claude.ai/
   - `vault/rules.ts` - pure lock and guardrail checks; `vault/locks.ts` - create and release locks
   - `vault/schedule.ts` - release schedules (parts freed on their dates) and `lockedNow`
   - `decimal.ts` - fixed-point money math
-- `db/` - Drizzle schema, migrations (`db/migrations`) and the Postgres `VaultStore`. Postgres is Supabase via the transaction pooler (port 6543, so `prepare: false`). Keep the `idle_timeout` / `max_lifetime` / `queue_timeout` settings in `db/client.ts`: without them, connections the pooler silently dropped made every signed-in page hang after a quiet spell. Every table has RLS on with no policies so Supabase's public Data API sees nothing; the app connects as the table owner. Without `DATABASE_URL` the app falls back to an in-memory store.
+- `db/` - Drizzle schema, migrations (`db/migrations`) and the Postgres `VaultStore`. Postgres is Supabase via the transaction pooler (port 6543, so `prepare: false`). Keep the `max_pipeline: 1` / `idle_timeout` / `max_lifetime` / `queue_timeout` settings and the per-query timeout in `db/client.ts`: Supabase's pooler jams on pipelined queries (postgres.js v4 pipelines by default), and connections it silently dropped made signed-in pages hang. Every table has RLS on with no policies so Supabase's public Data API sees nothing; the app connects as the table owner. Without `DATABASE_URL` the app falls back to an in-memory store.
 - `mock-gateway/` - local Gateway stand-in that verifies stamps
 - `scripts/` - dev scripts (in-memory store)
 - `app/` - Next.js UI: Home (`page.tsx`), New lock wizard (`vault/new/`), sign-in (`signin/`, `auth/verify/`); server loaders in `app/_server/`, shared lock policy in `app/_lib/lock-policy.ts`

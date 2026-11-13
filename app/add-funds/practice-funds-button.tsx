@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useToast } from "@/app/_components/toaster";
 import { addPracticeFundsAction } from "./actions";
+import { Busy } from "@/app/_components/spinner";
 
 export function PracticeFundsButton({ assetId, label }: { assetId: string; label: string }) {
   const toast = useToast();
@@ -23,7 +24,7 @@ export function PracticeFundsButton({ assetId, label }: { assetId: string; label
       }
       className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold hover:border-text-muted/40 disabled:opacity-60"
     >
-      {pending ? "Adding…" : label}
+      {pending ? <Busy>Adding…</Busy> : label}
     </button>
   );
 }

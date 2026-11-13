@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 100" role="img" aria-label="Stow">
+  <g transform="translate(-19 -12) scale(0.72)">
+    <g fill="none" stroke-width="18"><path d="M60.08 83.5 A23 23 0 0 1 72.13 50.39" stroke="#0089ff"/><path d="M75.22 49.5 A23 23 0 0 1 99.92 60.5" stroke="#5cb3ff"/><path d="M101.33 63.38 A23 23 0 0 1 61.88 86.16" stroke="#b8dcff"/></g>
+    <path d="M32 78 Q80 96 128 78 L128 108 Q128 132 104 132 L56 132 Q32 132 32 108 Z" fill="#0935d1"/>
+  </g>
+  <text x="88" y="63" font-family="'Michroma', 'Eurostile', 'Bank Gothic', sans-serif" font-size="34" font-weight="400" letter-spacing="2" fill="#122231">STOW</text>
+</svg>

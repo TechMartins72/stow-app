@@ -30,7 +30,7 @@ export function ActivityList({ items, nowIso }: { items: ActivityItem[]; nowIso:
 
   return (
     <div>
-      <div role="tablist" aria-label="Filter activity" className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+      <div role="tablist" aria-label="Filter activity" className="relative -mx-4 mb-6 flex gap-2 no-scrollbar overflow-x-auto scroll-px-4 px-4 sm:scroll-px-0 pb-1 sm:mx-0 sm:px-0">
         {FILTERS.map((f) => {
           const count = filterActivity(items, f.value).length;
           return (
@@ -63,7 +63,7 @@ export function ActivityList({ items, nowIso }: { items: ActivityItem[]; nowIso:
               <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-surface-raised">
                 {g.items.map((item) => (
                   <li key={item.id}>
-                    <Row item={item} />
+                    <ActivityRow item={item} />
                   </li>
                 ))}
               </ul>
@@ -75,7 +75,8 @@ export function ActivityList({ items, nowIso }: { items: ActivityItem[]; nowIso:
   );
 }
 
-function Row({ item }: { item: ActivityItem }) {
+/** One activity line; also used for the short list on Home. */
+export function ActivityRow({ item }: { item: ActivityItem }) {
   const icon = ICON[item.kind];
   const time = item.at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
   const body = (

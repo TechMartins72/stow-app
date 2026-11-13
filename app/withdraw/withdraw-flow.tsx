@@ -10,6 +10,7 @@ import type { Holding } from "@/app/_server/wallet";
 import { LockIcon } from "@/app/_components/icons";
 import { useToast } from "@/app/_components/toaster";
 import { previewWithdrawAction, withdrawAction, type PreviewResult, type SendResult } from "./actions";
+import { Busy } from "@/app/_components/spinner";
 
 type Stage = "form" | "review" | "done";
 
@@ -66,7 +67,7 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
 
   // ---------- Done ----------
   if (stage === "done" && result) {
-    if (!result.ok) return <ErrorPanel message={result.message} requestId={result.requestId} onBack={() => reset()} />;
+    if (!result.ok) return <ErrorPanel message={result.message} requestId={result.requestId} detail={result.detail} onBack={() => reset()} />;
     if (result.outcome === "blocked") {
       return <BlockedPanel reasons={result.reasons} blockers={h.blockers} accessible={h.accessible} unit={unit} onSendFree={() => reset({ qty: h.accessible })} onBack={() => reset()} />;
     }
@@ -130,7 +131,7 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
         <h2 className="display text-2xl">Check and send</h2>
         <div className="mt-5 rounded-2xl bg-hero p-5">
           <p className="text-sm font-semibold text-frame">You&apos;re sending</p>
-          <p className="num display mt-1 text-[32px] leading-tight text-white">{unit(qty)}</p>
+          <p className="num display mt-1 text-[calc(32px*var(--fs))] leading-tight text-white">{unit(qty)}</p>
           <p className="num text-sm font-semibold text-frame">About {usd}</p>
         </div>
         <dl className="mt-4 space-y-2 rounded-2xl bg-surface p-4 text-sm">
@@ -158,7 +159,7 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
             disabled={!confirmed || busy}
             className="flex-1 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {busy ? "Sending…" : `Send ${unit(qty)}`}
+            {busy ? <Busy>Sending…</Busy> : `Send ${unit(qty)}`}
           </button>
         </div>
       </section>
@@ -282,10 +283,15 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
       {preview && !preview.ok ? (
         <div role="alert" className="rounded-2xl border border-critical/30 bg-critical-bg p-4 text-sm">
           <p className="font-bold text-critical">{preview.message}</p>
-          {preview.requestId ? (
+          {preview.requestId || preview.detail ? (
             <details className="mt-1 text-text-muted">
               <summary className="cursor-pointer font-semibold">Details</summary>
-              Request ID: <code className="num">{preview.requestId}</code>
+              {preview.detail ? <p className="mt-1">{preview.detail}</p> : null}
+              {preview.requestId ? (
+                <p className="mt-1">
+                  Request ID: <code className="num">{preview.requestId}</code>
+                </p>
+              ) : null}
             </details>
           ) : null}
         </div>
@@ -296,7 +302,7 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
         disabled={busy}
         className="w-full rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
       >
-        {busy ? "Checking…" : "Review"}
+        {busy ? <Busy>Checking…</Busy> : "Review"}
       </button>
     </form>
   );
@@ -367,14 +373,19 @@ function BlockedPanel({
   );
 }
 
-function ErrorPanel({ message, requestId, onBack }: { message: string; requestId?: string; onBack: () => void }) {
+function ErrorPanel({ message, requestId, detail, onBack }: { message: string; requestId?: string; detail?: string; onBack: () => void }) {
   return (
     <section role="alert" className="rounded-[24px] border border-critical/30 bg-critical-bg p-6 sm:p-8">
       <h2 className="text-lg font-bold text-critical">{message}</h2>
-      {requestId ? (
+      {requestId || detail ? (
         <details className="mt-2 text-sm text-text-muted">
           <summary className="cursor-pointer font-semibold">Details</summary>
-          Request ID: <code className="num">{requestId}</code>
+          {detail ? <p className="mt-1">{detail}</p> : null}
+          {requestId ? (
+            <p className="mt-1">
+              Request ID: <code className="num">{requestId}</code>
+            </p>
+          ) : null}
         </details>
       ) : null}
       <button type="button" onClick={onBack} className="mt-5 rounded-xl border border-border bg-surface-raised px-[22px] py-3 font-semibold">

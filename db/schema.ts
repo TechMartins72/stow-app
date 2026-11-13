@@ -7,6 +7,12 @@ const at = (name: string) => timestamp(name, { withTimezone: true });
 // public Data API (anon/authenticated keys) can read nothing. The app connects
 // as the table owner, which RLS doesn't restrict.
 
+/** App-wide settings. `gateway_mode` records whether this database is for practice or real money (db/database-mode.ts). */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+}).enableRLS();
+
 export const lockStatus = pgEnum("lock_status", ["active", "released", "exited"]);
 
 export const users = pgTable("users", {
@@ -15,6 +21,8 @@ export const users = pgTable("users", {
   // Set once the Gateway user and wallets exist.
   gatewayUserId: text("gateway_user_id").unique(),
   riskProfile: text("risk_profile"),
+  // The user can switch the Advisor off; it then makes no suggestions and approves nothing.
+  advisorEnabled: boolean("advisor_enabled").notNull().default(true),
   createdAt: at("created_at").notNull().defaultNow(),
 }).enableRLS();
 

@@ -81,16 +81,45 @@ export const ArrowRightIcon = (p: IconProps) => (
     <path d="M5 12h14M13 6l6 6-6 6" />
   </Svg>
 );
+export const CopyIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2.5" />
+    <path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5" />
+  </Svg>
+);
+export const WalletIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" />
+    <path d="M3 6.5A2.5 2.5 0 0 0 5.5 9h13A1.5 1.5 0 0 1 20 10.5V15h-4a2 2 0 0 1 0-4h4" />
+  </Svg>
+);
+export const BookIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+    <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M8 7.5h8M8 11h5" />
+  </Svg>
+);
+export const CalendarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+    <path d="M8 3v4M16 3v4M3.5 10h17" />
+  </Svg>
+);
 
-/** Brand mark: a padlock inside a ring. Original motif; see the design doc. */
-export function VaultMark({ className }: { className?: string }) {
+/**
+ * Brand mark: a budget ring (three portions) dropping into a savings pocket.
+ * Same artwork as public/brand/stow-mark.svg; fixed brand colours, so it reads
+ * on both the dark frame and light cards.
+ */
+export function StowMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className ?? "size-8"} aria-hidden>
-      <rect width="32" height="32" rx="10" fill="var(--hero)" />
-      <circle cx="16" cy="16" r="10.5" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="1.5" />
-      <rect x="10.5" y="14" width="11" height="8.5" rx="2.2" fill="#fff" />
-      <path d="M12.8 14v-2.2a3.2 3.2 0 0 1 6.4 0V14" fill="none" stroke="#fff" strokeWidth="2" />
-      <circle cx="16" cy="18" r="1.3" fill="var(--hero)" />
+    <svg viewBox="28 36 104 100" className={className ?? "size-8"} aria-hidden>
+      <g fill="none" strokeWidth="18">
+        <path d="M60.08 83.5 A23 23 0 0 1 72.13 50.39" stroke="#0089ff" />
+        <path d="M75.22 49.5 A23 23 0 0 1 99.92 60.5" stroke="#5cb3ff" />
+        <path d="M101.33 63.38 A23 23 0 0 1 61.88 86.16" stroke="#b8dcff" />
+      </g>
+      <path d="M32 78 Q80 96 128 78 L128 108 Q128 132 104 132 L56 132 Q32 132 32 108 Z" fill="#0935d1" />
     </svg>
   );
 }

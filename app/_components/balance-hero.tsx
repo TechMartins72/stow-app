@@ -29,7 +29,7 @@ export function BalanceHero({ total, accessible, locked, lockedPercent, practice
       <div className="relative flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-frame/90 px-3 py-1 text-xs font-semibold text-white">
           <LockIcon className="size-3.5" />
-          {lockedPercent > 0 ? `${Math.round(lockedPercent)}% locked` : "Nothing locked yet"}
+          {lockedPercent > 0 ? `${Math.round(lockedPercent)}% saved or budgeted` : "Nothing put away yet"}
         </span>
         {practice ? (
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-frame">Practice money</span>
@@ -38,38 +38,38 @@ export function BalanceHero({ total, accessible, locked, lockedPercent, practice
 
       <div className="relative mt-5 flex items-center gap-3">
         <h2 id="balance-label" className="text-sm font-semibold text-frame">
-          Total savings
+          Total balance
         </h2>
         <button
           type="button"
           onClick={() => setHidden((h) => !h)}
           aria-pressed={hidden}
           aria-label={hidden ? "Show balances" : "Hide balances"}
-          className="rounded-full p-1 text-frame hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+          className="-m-2 rounded-full p-2.5 text-frame hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
         >
           {hidden ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
         </button>
       </div>
-      <p className="num display relative mt-1 text-[40px] leading-none text-white sm:text-[52px]">{show(total)}</p>
+      <p className="num display relative mt-1 text-[calc(40px*var(--fs))] leading-none text-white sm:text-[52px]">{show(total)}</p>
 
       <div className="relative mt-7">
         <div
           className="flex h-3 overflow-hidden rounded-full bg-white"
           role="img"
-          aria-label={`${Math.round(lockedPercent)}% locked, ${Math.round(100 - lockedPercent)}% accessible`}
+          aria-label={`${Math.round(lockedPercent)}% saved or budgeted, ${Math.round(100 - lockedPercent)}% free to spend`}
         >
           <div className="h-full bg-locked" style={{ width: `${lockedPercent}%` }} />
         </div>
         <dl className="mt-3 grid grid-cols-2 gap-4">
           <div>
             <dt className="flex items-center gap-1.5 text-xs font-semibold text-frame">
-              <span className="size-2.5 rounded-full bg-locked" aria-hidden /> Locked
+              <span className="size-2.5 rounded-full bg-locked" aria-hidden /> Saved &amp; budgeted
             </dt>
             <dd className="num mt-0.5 text-lg font-bold text-frame">{show(locked)}</dd>
           </div>
           <div>
             <dt className="flex items-center gap-1.5 text-xs font-semibold text-frame">
-              <span className="size-2.5 rounded-full bg-white" aria-hidden /> Accessible
+              <span className="size-2.5 rounded-full bg-white" aria-hidden /> Free to spend
             </dt>
             <dd className="num mt-0.5 text-lg font-bold text-frame">{show(accessible)}</dd>
           </div>

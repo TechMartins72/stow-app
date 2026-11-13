@@ -13,7 +13,27 @@ import { buildSchedule } from "../vault/schedule";
 import { MemoryVaultStore } from "../vault/store";
 import { generateKeyPairSync } from "node:crypto";
 import { generateSignerKey } from "./keys";
-import { SigningGuard, type GuardUser } from "./guard";
+import { findCoin, sameCoin, SigningGuard, type GuardUser } from "./guard";
+
+describe("matching the paying coin to the wallet", () => {
+  const wallet = [
+    { asset_id: "usdc-sol", symbol: "USDC", chain: "solana", address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+    { asset_id: "usdc-base", symbol: "USDC", chain: "base", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+  ];
+
+  it("finds a coin by symbol or token address, on the right network only", () => {
+    expect(findCoin(wallet, "USDC", "base")?.asset_id).toBe("usdc-base");
+    expect(findCoin(wallet, "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "solana")?.asset_id).toBe("usdc-sol");
+    expect(findCoin(wallet, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "base")?.asset_id).toBe("usdc-base"); // lower-cased by the API
+    expect(findCoin(wallet, "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "base")).toBeUndefined();
+  });
+
+  it("ignores case only for 0x addresses", () => {
+    expect(sameCoin("0xABCDEF", "0xabcdef")).toBe(true);
+    expect(sameCoin("EPjFWdd5", "epjfwdd5")).toBe(false); // Solana addresses are case-sensitive
+    expect(sameCoin("USDC", "usdc")).toBe(false);
+  });
+});
 
 let server: Server;
 let client: GatewayClient;
@@ -80,6 +100,25 @@ describe("SigningGuard against the mock Gateway", () => {
     expect(buy).toMatchObject({ status: "executed", result: { status: "complete" } });
   });
 
+  it("finds the paying USDC on Base when the quote names it by lower-cased contract address", async () => {
+    const { guard, store, user } = await newUser("base-address");
+    await fund(user, asset("USDC", "base"), "5");
+    // More than the wallet holds once the lock is taken out: the message must say USDC and the real free amount.
+    await createLock({ client, store, now: () => new Date("2026-11-05T12:00:00Z") }, user.gatewayUserId, {
+      userId: user.id,
+      assetId: asset("USDC", "base").id,
+      symbol: "USDC",
+      amount: "3",
+      unlockAt: new Date("2027-06-01T00:00:00Z"),
+    });
+    const tooBig = await guard.placeMarketOrder(user, { asset: asset("AAPLC", "base"), side: "buy", amount: "2.5", actor: "user" });
+    expect(tooBig).toMatchObject({ status: "blocked", violations: [{ rule: "locked" }] });
+    if (tooBig.status === "blocked") expect(tooBig.violations[0].message).toMatch(/USDC.*You can use 2 USDC/);
+
+    const fits = await guard.placeMarketOrder(user, { asset: asset("AAPLC", "base"), side: "buy", amount: "1.5", actor: "user" });
+    expect(fits).toMatchObject({ status: "executed", result: { status: "complete" } });
+  });
+
   it("refuses to sign when the price moved past the user's minimum", async () => {
     const { guard, store, user } = await newUser("slippage");
     await fund(user, asset("USDC", "base"), "50");
@@ -115,6 +154,11 @@ describe("SigningGuard against the mock Gateway", () => {
     // 4 accessible, so a 5 USDC buy (plus fee) is blocked too.
     const bigBuy = await guard.placeMarketOrder(user, { asset: asset("SOL", "solana"), side: "buy", amount: "5", actor: "advisor" });
     expect(bigBuy).toMatchObject({ status: "blocked", violations: [{ rule: "locked" }] });
+    // The quote names USDC by its token address; people should read "USDC".
+    if (bigBuy.status === "blocked") {
+      expect(bigBuy.violations[0].message).toContain("USDC");
+      expect(bigBuy.violations[0].message).not.toContain("EPjF");
+    }
 
     const ok = await guard.withdraw(user, { asset: usdc, qty: "4", to: DEST, actor: "user" });
     expect(ok.status).toBe("executed");

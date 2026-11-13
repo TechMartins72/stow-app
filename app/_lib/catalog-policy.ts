@@ -42,9 +42,13 @@ export function cryptoLabel(a: Pick<Asset, "symbol" | "chain" | "name">): string
   return APPROVED_CRYPTO.find((c) => c.symbol === a.symbol.toUpperCase() && c.chain === a.chain)?.label;
 }
 
-/** The stablecoin that pays for (and receives) trades on a network. USDC first; else any stable. */
+/**
+ * The stablecoin that pays for (and receives) trades on a network. USDC first; else any stable.
+ * Not gated on `tradeable`: the live catalog marks every stablecoin tradeable: false, because you
+ * pay with USDC rather than buy it. Only a stablecoin that's switched off doesn't count.
+ */
 export function cashFor(catalog: Asset[], chain: string | null): Asset | undefined {
-  const stables = catalog.filter((a) => a.stable && a.chain === chain && a.type !== "perp" && tradability(a) !== null);
+  const stables = catalog.filter((a) => a.stable && a.chain === chain && a.type !== "perp" && a.is_active !== false);
   return stables.find((a) => a.symbol === "USDC") ?? stables[0];
 }
 

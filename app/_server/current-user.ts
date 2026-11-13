@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { users } from "@/db/schema";
 import type { Engine, GuardUser, Wallet } from "@/engine";
-import { getDb } from "./engine";
+import { ensureDatabaseMode, getDb } from "./engine";
 import { readSession } from "./session";
 
 /**
@@ -15,6 +15,8 @@ import { readSession } from "./session";
 export async function getCurrentUser(engine: Engine): Promise<GuardUser & { email: string }> {
   const session = await readSession();
   if (!session) redirect("/signin");
+  // Never pair practice accounts with real money (or the reverse): the database must match GATEWAY_MODE.
+  await ensureDatabaseMode();
 
   let gatewayUserId = session.gatewayUserId;
   // The mock forgets users when it restarts, so in mock mode always re-confirm.

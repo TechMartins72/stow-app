@@ -15,6 +15,20 @@
       "when": 1793902970383,
       "tag": "0001_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794571833187,
+      "tag": "0002_advisor_toggle",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794584613320,
+      "tag": "0003_database_mode",
+      "breakpoints": true
     }
   ]
 }

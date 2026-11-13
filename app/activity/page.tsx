@@ -5,8 +5,9 @@ import { AppShell } from "@/app/_components/app-shell";
 import { GatewayErrorCard } from "@/app/_components/home-sections";
 import { loadActivity } from "@/app/_server/activity";
 import { ActivityList } from "./activity-list";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Activity · Portfolio Vault" };
+export const metadata: Metadata = { title: "Activity · Stow" };
 
 export default function ActivityPage() {
   return (
@@ -14,9 +15,9 @@ export default function ActivityPage() {
       <div className="mx-auto max-w-3xl">
         <header className="mb-6">
           <p className="text-sm font-semibold text-text-muted">Everything that happened, and everything the app refused</p>
-          <h1 className="display text-[28px] leading-tight sm:text-[32px]">Activity</h1>
+          <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Activity</h1>
         </header>
-        <Suspense fallback={<div aria-busy aria-label="Loading activity" className="h-[480px] animate-pulse rounded-[20px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading activity" className="h-[480px] rounded-[20px]" />}>
           <ActivityContent />
         </Suspense>
       </div>

@@ -3,7 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { DrizzleAuthStore } from "@/db/auth-store";
 import { MemoryAuthStore, SESSION_TTL_MS, sessionUser, type AuthStore, type SessionUser } from "./auth-core";
-import { getDb } from "./engine";
+import { getDb, retryReadIfDbStuck } from "./engine";
 
 export const SESSION_COOKIE = "pv_session";
 
@@ -19,7 +19,8 @@ export function getAuthStore(): AuthStore {
 export async function readSession(): Promise<SessionUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return sessionUser(getAuthStore(), token, new Date());
+  // Every signed-in page reads the session first, so a stuck pool is noticed (and replaced) here.
+  return retryReadIfDbStuck(() => sessionUser(getAuthStore(), token, new Date()));
 }
 
 /** Only in Server Functions or Route Handlers: cookies can't be set while rendering. */

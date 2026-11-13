@@ -9,7 +9,9 @@ export function ChangePill({ pct, direction, label = "24h" }: { pct: number; dir
   const arrow = direction === "up" ? "▲" : direction === "down" ? "▼" : "•";
   const sign = direction === "up" ? "+" : direction === "down" ? "−" : "";
   return (
-    <span className={`num inline-flex items-center gap-1 text-xs font-bold ${tone(direction)}`}>
+    // `relative` keeps the sr-only label positioned inside the pill; without it, inside a
+    // horizontal scroller the label escapes to the page and widens it on phones.
+    <span className={`num relative inline-flex items-center gap-1 text-xs font-bold ${tone(direction)}`}>
       <span aria-hidden>{arrow}</span>
       {sign}
       {Math.abs(pct).toFixed(2)}%<span className="sr-only"> over {label}</span>

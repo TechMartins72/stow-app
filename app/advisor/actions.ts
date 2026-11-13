@@ -8,7 +8,7 @@ import { PROFILES, type RiskProfile } from "@/app/_lib/advisor";
 import { formatDate, formatQty } from "@/app/_lib/format";
 import { unlockFromPreset } from "@/app/_lib/lock-policy";
 import { minAccepted } from "@/app/_lib/trade-policy";
-import { computeSuggestions, setProfile } from "@/app/_server/advisor";
+import { computeSuggestions, getAdvisorEnabled, setAdvisorEnabled, setProfile } from "@/app/_server/advisor";
 import { getCurrentUser } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
@@ -24,6 +24,13 @@ export async function setProfileAction(profile: RiskProfile): Promise<void> {
   refresh();
 }
 
+export async function setAdvisorEnabledAction(enabled: boolean): Promise<void> {
+  if (typeof enabled !== "boolean") return;
+  const user = await getCurrentUser(getEngine());
+  await setAdvisorEnabled(user.id, enabled);
+  refresh();
+}
+
 /**
  * Carries out one suggestion. The suggestion is rebuilt here from live data;
  * the id from the browser only says which one. Money moves only through the
@@ -34,6 +41,8 @@ export async function approveSuggestionAction(id: string): Promise<ApproveResult
   const engine = getEngine();
   try {
     const user = await getCurrentUser(engine);
+    // Checked on the server, so a stale page can't approve anything once it's off.
+    if (!(await getAdvisorEnabled(user.id))) return { ok: false, message: "The Advisor is switched off. Turn it on to approve suggestions." };
     const { suggestions, catalog } = await computeSuggestions(engine, user);
     const s = suggestions.find((x) => x.id === id);
     if (!s) return { ok: false, message: "That suggestion no longer applies. Your balances changed since it was made." };

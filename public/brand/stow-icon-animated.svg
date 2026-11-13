@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Stow">
+  <style>
+    .coin { animation: stow-coin 2.8s infinite; }
+    .pocket { animation: stow-pocket 2.8s infinite; }
+    @keyframes stow-coin {
+      0% { transform: translateY(-40px); opacity: 0; animation-timing-function: ease-in; }
+      10% { opacity: 1; }
+      28% { transform: translateY(5px); animation-timing-function: ease-out; }
+      38% { transform: translateY(-2px); animation-timing-function: ease-in-out; }
+      46% { transform: translateY(0); opacity: 1; }
+      88% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(0); opacity: 0; }
+    }
+    @keyframes stow-pocket {
+      0%, 26% { transform: translateY(0); animation-timing-function: ease-out; }
+      31% { transform: translateY(3px); animation-timing-function: ease-in-out; }
+      42%, 100% { transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .coin, .pocket { animation: none; }
+    }
+  </style>
+  <rect width="160" height="160" rx="36" fill="#060f21"/>
+  <g class="coin" fill="none" stroke-width="18"><path d="M60.08 83.5 A23 23 0 0 1 72.13 50.39" stroke="#0089ff"/><path d="M75.22 49.5 A23 23 0 0 1 99.92 60.5" stroke="#5cb3ff"/><path d="M101.33 63.38 A23 23 0 0 1 61.88 86.16" stroke="#b8dcff"/></g>
+  <path class="pocket" d="M32 78 Q80 96 128 78 L128 108 Q128 132 104 132 L56 132 Q32 132 32 108 Z" fill="#0935d1"/>
+</svg>

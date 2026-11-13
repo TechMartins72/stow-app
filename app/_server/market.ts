@@ -57,7 +57,7 @@ async function catalog(engine: Engine) {
 }
 
 /** Last-day price history for many assets in one public call. Never fails the page. */
-async function dayHistory(engine: Engine, assets: Asset[]) {
+export async function dayHistory(engine: Engine, assets: Asset[]) {
   const ids = assets.map((a) => a.economic_asset_id).filter((id): id is string => Boolean(id));
   try {
     const series = await engine.client.priceHistoryBatch(ids, "1d", "1h");
@@ -71,14 +71,14 @@ async function dayHistory(engine: Engine, assets: Asset[]) {
  * A crisp logo: the catalog's `icon` is a tiny (~25px) thumbnail, so prefer
  * `image.large`, or the same CoinGecko path at its large size.
  */
-function logoOf(a: Asset): string | null {
+export function logoOf(a: Asset): string | null {
   const large = (a.image as { large?: unknown } | undefined)?.large;
   if (typeof large === "string" && large.startsWith("https://")) return large;
   if (typeof a.icon !== "string" || !a.icon.startsWith("https://")) return null;
   return a.icon.includes("coin-images.coingecko.com") ? a.icon.replace("/small/", "/large/") : a.icon;
 }
 
-function toMarketAsset(a: Asset, holding: Holding | undefined, points: { price: string }[] | undefined): MarketAsset {
+export function toMarketAsset(a: Asset, holding: Holding | undefined, points: { price: string }[] | undefined): MarketAsset {
   const summary = summarisePoints(points ?? []);
   const owned = holding?.available ?? "0";
   // Market data first; a held asset can fall back to the wallet's quote-based price.

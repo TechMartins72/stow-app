@@ -38,7 +38,7 @@ export function MarketList({ assets }: { assets: MarketAsset[] }) {
           <h2 id="movers-title" className="display mb-3 text-xl">
             Biggest moves today
           </h2>
-          <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
+          <div className="relative -mx-4 flex snap-x gap-3 no-scrollbar overflow-x-auto scroll-px-4 px-4 sm:scroll-px-0 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
             {movers.map((a) => (
               <Link
                 key={a.assetId}
@@ -121,7 +121,7 @@ function Section({ title, items, showPosition = false }: { title: string; items:
                 <span className="flex items-center gap-2">
                   <span className="truncate font-bold">{a.name}</span>
                   {a.tradability === "sell_only" ? (
-                    <span className="shrink-0 rounded-full bg-warning-bg px-2 py-0.5 text-[10px] font-bold text-warning">Sell only</span>
+                    <span className="shrink-0 rounded-full bg-warning-bg px-2 py-0.5 text-[calc(10px*var(--fs))] font-bold text-warning">Sell only</span>
                   ) : null}
                 </span>
                 <span className="block text-xs text-text-muted">

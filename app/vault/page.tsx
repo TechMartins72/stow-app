@@ -8,8 +8,9 @@ import { LockIcon, PadlockMotif, PlusIcon } from "@/app/_components/icons";
 import { LockCard } from "@/app/_components/lock-card";
 import { formatDate, formatQty, formatUsd } from "@/app/_lib/format";
 import { loadVault } from "@/app/_server/vault";
+import { LoadingNote } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Vault · Portfolio Vault" };
+export const metadata: Metadata = { title: "Vault · Stow" };
 
 export default function VaultPage() {
   return (
@@ -17,14 +18,14 @@ export default function VaultPage() {
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-text-muted">Every promise in one place</p>
-            <h1 className="display text-[28px] leading-tight sm:text-[32px]">Vault</h1>
+            <p className="text-sm font-semibold text-text-muted">Your savings goals and budgets, in one place</p>
+            <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Vault</h1>
           </div>
           <Link
             href="/vault/new"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover"
           >
-            <PlusIcon className="size-4" /> New lock
+            <PlusIcon className="size-4" /> New plan
           </Link>
         </header>
         <Suspense fallback={<VaultSkeleton />}>
@@ -46,18 +47,18 @@ async function VaultContent() {
     <div className="space-y-10">
       <section className="relative overflow-hidden rounded-[24px] bg-locked p-6 text-white sm:p-8">
         <PadlockMotif className="pointer-events-none absolute -right-10 -bottom-14 size-64 text-white/10" />
-        <p className="relative text-sm font-semibold text-white/80">Locked right now</p>
-        <p className="num display relative mt-1 text-[40px] leading-none">{formatUsd(totalLockedUsd)}</p>
+        <p className="relative text-sm font-semibold text-white/80">Saved and budgeted right now</p>
+        <p className="num display relative mt-1 text-[calc(40px*var(--fs))] leading-none">{formatUsd(totalLockedUsd)}</p>
         <p className="relative mt-4 text-sm text-white/85">
           {nextRelease
-            ? `Next release: ${formatQty(nextRelease.amount)} ${nextRelease.lock.symbol} from “${nextRelease.lock.goalName}” on ${formatDate(nextRelease.releaseAt)}.`
-            : "Nothing locked at the moment."}
+            ? `Next pay-out: ${formatQty(nextRelease.amount)} ${nextRelease.lock.symbol} from “${nextRelease.lock.goalName}” on ${formatDate(nextRelease.releaseAt)}.`
+            : "No savings goals or budgets yet."}
         </p>
       </section>
 
       <section aria-labelledby="active-title">
         <h2 id="active-title" className="display mb-3 text-xl">
-          Active locks <span className="num text-text-muted">· {active.length}</span>
+          Active plans <span className="num text-text-muted">· {active.length}</span>
         </h2>
         {active.length === 0 ? (
           <NoLocksCard />
@@ -101,7 +102,8 @@ async function VaultContent() {
 
 function VaultSkeleton() {
   return (
-    <div aria-busy aria-label="Loading your locks" className="space-y-8">
+    <div aria-busy aria-label="Loading your savings goals and budgets" className="space-y-8">
+      <LoadingNote label="Loading your savings goals and budgets" />
       <div className="h-[170px] animate-pulse rounded-[24px] bg-locked/40" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="h-48 animate-pulse rounded-[20px] bg-border/60" />

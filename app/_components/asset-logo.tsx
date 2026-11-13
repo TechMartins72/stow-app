@@ -23,7 +23,7 @@ export function AssetLogo({ icon, ticker, size = 44 }: { icon: string | null; ti
   if (!allowed(icon) || failed) {
     return (
       <span
-        className="grid shrink-0 place-items-center rounded-full bg-frame text-[11px] font-extrabold text-white"
+        className="grid shrink-0 place-items-center rounded-full bg-frame text-[calc(11px*var(--fs))] font-extrabold text-white"
         style={box}
         aria-hidden
       >

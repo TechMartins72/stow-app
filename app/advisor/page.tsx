@@ -4,23 +4,25 @@ import { Suspense } from "react";
 import { AppShell } from "@/app/_components/app-shell";
 import { GatewayErrorCard } from "@/app/_components/home-sections";
 import { formatUsd } from "@/app/_lib/format";
-import { loadAdvisor } from "@/app/_server/advisor";
+import { getAdvisorEnabled, loadAdvisor } from "@/app/_server/advisor";
 import { getCurrentUser } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
+import { AdvisorSwitch } from "./advisor-switch";
 import { AdvisorView } from "./advisor-view";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Advisor · Portfolio Vault" };
+export const metadata: Metadata = { title: "Advisor · Stow" };
 
 export default function AdvisorPage() {
   return (
     <AppShell active="/advisor">
       <div className="mx-auto max-w-3xl">
         <header className="mb-6">
-          <p className="text-sm font-semibold text-text-muted">Suggestions you approve, under the same rules as you</p>
-          <h1 className="display text-[28px] leading-tight sm:text-[32px]">Advisor</h1>
+          <p className="text-sm font-semibold text-text-muted">Ideas to save more and stay on budget, only if you approve</p>
+          <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Advisor</h1>
         </header>
-        <Suspense fallback={<div aria-busy aria-label="Loading the advisor" className="h-[520px] animate-pulse rounded-[20px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading the advisor" className="h-[520px] rounded-[20px]" />}>
           <AdvisorContent />
         </Suspense>
       </div>
@@ -31,16 +33,31 @@ export default function AdvisorPage() {
 async function AdvisorContent() {
   await connection();
   const engine = getEngine();
-  let data;
+  let data: Awaited<ReturnType<typeof loadAdvisor>> | null = null;
   try {
-    data = await loadAdvisor(engine, await getCurrentUser(engine));
+    const user = await getCurrentUser(engine);
+    // Switched off: skip the suggestions (and their Gateway calls) entirely.
+    if (await getAdvisorEnabled(user.id)) data = await loadAdvisor(engine, user);
   } catch (err) {
     const f = gatewayFailure(engine, err);
     return <GatewayErrorCard reason={f.reason} mode={f.mode} requestId={f.requestId} />;
   }
 
+  if (!data) {
+    return (
+      <div className="space-y-6">
+        <AdvisorSwitch enabled={false} />
+        <p className="rounded-[20px] border border-dashed border-border bg-surface-raised p-6 text-sm text-text-muted">
+          The Advisor is off. Your savings goals and budgets work exactly the same without it. Switch it back on any time to get
+          suggestions again.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
+      <AdvisorSwitch enabled />
       <AdvisorView profile={data.profile} suggestions={data.suggestions} />
 
       <section aria-labelledby="rules-title" className="rounded-[20px] bg-surface-raised p-5 text-sm sm:p-6">

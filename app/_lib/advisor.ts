@@ -143,7 +143,7 @@ export function suggest(input: {
       title: `${formatQty(soon.amount, 6)} ${soon.symbol} unlocks on ${formatDate(soon.releaseAt)}`,
       why: `Part of “${soon.goalName}” is about to become spendable.`,
       impact: "If you don't need it yet, lock some of it again.",
-      action: { kind: "link", href: "/vault/new", label: "New lock" },
+      action: { kind: "link", href: "/vault/new", label: "New plan" },
     });
   }
 

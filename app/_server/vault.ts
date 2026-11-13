@@ -1,6 +1,7 @@
 import "server-only";
 
 import { dec, sum, toDecimalString, ZERO } from "@/engine/decimal";
+import { accessibleBalance } from "@/engine";
 import { sortLockViews, toLockView, type LockView } from "@/app/_lib/lock-view";
 import { getCurrentUser } from "./current-user";
 import { getEngine } from "./engine";
@@ -14,13 +15,17 @@ export interface VaultData {
   nextRelease?: { lock: LockView; releaseAt: Date; amount: string };
 }
 
-async function lockViews() {
+async function loadAll() {
   const engine = getEngine();
   const user = await getCurrentUser(engine);
   const [balances, locks] = await Promise.all([engine.client.getBalances(user.gatewayUserId), engine.store.listLocks(user.id)]);
   const prices = await priceMap(engine, user, balances);
   const now = new Date();
-  return locks.map((l) => toLockView(l, now, prices.get(l.assetId) ?? ZERO));
+  return { balances, locks, now, views: locks.map((l) => toLockView(l, now, prices.get(l.assetId) ?? ZERO)) };
+}
+
+async function lockViews() {
+  return (await loadAll()).views;
 }
 
 /** Every lock: active ones by next release, then finished ones. */
@@ -43,11 +48,17 @@ export async function loadVault(): Promise<{ ok: true; data: VaultData } | Gatew
   }
 }
 
-/** One of the signed-in user's locks, or null if it isn't theirs or doesn't exist. */
-export async function loadLock(lockId: string): Promise<{ ok: true; lock: LockView | null } | GatewayFailure> {
+/**
+ * One of the signed-in user's locks, or null if it isn't theirs or doesn't exist,
+ * plus how much of that asset is free to withdraw right now (wallet minus every lock on it).
+ */
+export async function loadLock(lockId: string): Promise<{ ok: true; lock: LockView | null; freeAmount: string } | GatewayFailure> {
   const engine = getEngine();
   try {
-    return { ok: true, lock: (await lockViews()).find((v) => v.id === lockId) ?? null };
+    const { balances, locks, now, views } = await loadAll();
+    const lock = views.find((v) => v.id === lockId) ?? null;
+    const freeAmount = lock ? toDecimalString(accessibleBalance(lock.assetId, { balances, locks, now }).accessible) : "0";
+    return { ok: true, lock, freeAmount };
   } catch (err) {
     return gatewayFailure(engine, err);
   }

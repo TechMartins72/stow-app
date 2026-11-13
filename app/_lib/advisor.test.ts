@@ -49,7 +49,7 @@ describe("suggest", () => {
   it("flags a release in the next 7 days", () => {
     const upcoming = [{ lockId: "L", goalName: "Budget", symbol: "USDC", amount: "1000", releaseAt: new Date("2026-11-10T00:00:00Z") }];
     const [s] = suggest({ holdings: [usdc("10")], stocks: [], upcoming, profile: "balanced", now });
-    expect(s.action).toEqual({ kind: "link", href: "/vault/new", label: "New lock" });
+    expect(s.action).toEqual({ kind: "link", href: "/vault/new", label: "New plan" });
     expect(suggest({ holdings: [usdc("10")], stocks: [], upcoming: [{ ...upcoming[0], releaseAt: new Date("2026-12-01T00:00:00Z") }], profile: "balanced", now })).toEqual([]);
   });
 

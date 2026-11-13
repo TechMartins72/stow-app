@@ -18,6 +18,8 @@
   --accent-primary-hover: #0629a8;
   --hero: #0089ff;
   --accent-locked: #00259b;
+  /* Third series colour (stocks in the allocation bar), next to hero and primary. */
+  --accent-stocks: #7c4dff;
 
   --positive: #0e9f6e;
   --negative: #d92d20;
@@ -38,6 +40,7 @@
     --accent-primary: #4d7cff;
     --accent-primary-hover: #6b92ff;
     --accent-locked: #3557d6;
+    --accent-stocks: #a68bff;
 
     --positive: #34d399;
     --negative: #f87171;
@@ -62,6 +65,7 @@
   --color-primary-hover: var(--accent-primary-hover);
   --color-hero: var(--hero);
   --color-locked: var(--accent-locked);
+  --color-stocks: var(--accent-stocks);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-warning: var(--warning);
@@ -71,12 +75,42 @@
   --font-sans: var(--font-jakarta);
   --radius-card: 20px;
   --radius-hero: 24px;
+  /* Type scale times --fs, so phones get text 10% smaller without touching spacing.
+     Fixed pixel sizes in components use text-[calc(Npx*var(--fs))] for the same reason. */
+  --text-xs: calc(0.75rem * var(--fs));
+  --text-sm: calc(0.875rem * var(--fs));
+  --text-base: calc(1rem * var(--fs));
+  --text-lg: calc(1.125rem * var(--fs));
+  --text-xl: calc(1.25rem * var(--fs));
+  --text-2xl: calc(1.5rem * var(--fs));
+  --text-3xl: calc(1.875rem * var(--fs));
+  --text-4xl: calc(2.25rem * var(--fs));
+  --text-5xl: calc(3rem * var(--fs));
+}
+
+/* Font scale: 90% on phones, full size from the sm breakpoint (640px) up. */
+:root {
+  --fs: 1;
+}
+@media (width < 40rem) {
+  :root {
+    --fs: 0.9;
+  }
 }
 
 body {
   background: var(--surface);
   color: var(--text);
   font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-size: calc(1rem * var(--fs));
+}
+
+/* Sideways card rows on phones: swipeable, without a visible scrollbar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Every amount uses tabular numerals so columns line up. */
@@ -98,4 +132,12 @@ body {
 .display {
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+/* The "STOW" wordmark next to the brand mark. */
+.wordmark {
+  font-family: var(--font-michroma), var(--font-jakarta), sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }

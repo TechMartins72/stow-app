@@ -15,7 +15,26 @@ export interface CheckedSuggestion extends Suggestion {
   check: { allowed: boolean; reason?: string } | null;
 }
 
-const g = globalThis as typeof globalThis & { __profiles?: Map<string, RiskProfile> };
+const g = globalThis as typeof globalThis & { __profiles?: Map<string, RiskProfile>; __advisorOff?: Set<string> };
+
+/** On unless the user switched it off. Off: no suggestions, and approvals are refused. */
+export async function getAdvisorEnabled(userId: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) return !(g.__advisorOff ??= new Set()).has(userId);
+  const [row] = await db.select({ on: users.advisorEnabled }).from(users).where(eq(users.id, userId));
+  return row?.on ?? true;
+}
+
+export async function setAdvisorEnabled(userId: string, enabled: boolean): Promise<void> {
+  const db = getDb();
+  if (!db) {
+    const off = (g.__advisorOff ??= new Set());
+    if (enabled) off.delete(userId);
+    else off.add(userId);
+    return;
+  }
+  await db.update(users).set({ advisorEnabled: enabled }).where(eq(users.id, userId));
+}
 
 export async function getProfile(userId: string): Promise<RiskProfile> {
   const db = getDb();

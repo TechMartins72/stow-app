@@ -28,18 +28,22 @@ type MockAssetInput = Pick<MockAsset, "symbol" | "name" | "chain" | "asset_class
 const mk = (n: number, a: MockAssetInput): MockAsset => ({
   id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
   economic_asset_id: `00000000-0000-4000-9000-${String(n).padStart(12, "0")}`,
+  // The token's on-chain address. The live API names coins by it in order quotes (see USDC below).
+  address: a.chain === "solana" ? `Mock${String(n).padStart(40, "1")}` : `0x${String(n).padStart(40, "0")}`,
   venue: "defi",
   type: "spot",
   is_active: true,
-  tradeable: true,
+  // Like the live catalog: stablecoins are what you pay with, so they're not tradeable themselves.
+  tradeable: !a.stable,
   status: "active",
   ...a,
 });
 
 const ASSETS: MockAsset[] = [
-  mk(1, { symbol: "USDC", name: "USD Coin", chain: "solana", asset_class: "crypto", stable: true, decimals: 6, price: "1", icon: `${CG}/6319/small/USDC.png` }),
+  // USDC carries its real token addresses: the live API's order quotes name it only by these.
+  mk(1, { symbol: "USDC", name: "USD Coin", chain: "solana", asset_class: "crypto", stable: true, decimals: 6, price: "1", address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", icon: `${CG}/6319/small/USDC.png` }),
   mk(2, { symbol: "SOL", name: "Solana", chain: "solana", asset_class: "crypto", stable: false, decimals: 9, price: "150", icon: `${CG}/4128/small/solana.png`, website: "https://solana.com/", description: "Solana is a high-performance blockchain designed for fast, low-cost transactions." }),
-  mk(3, { symbol: "USDC", name: "USD Coin", chain: "base", asset_class: "crypto", stable: true, decimals: 6, price: "1", icon: `${CG}/6319/small/USDC.png` }),
+  mk(3, { symbol: "USDC", name: "USD Coin", chain: "base", asset_class: "crypto", stable: true, decimals: 6, price: "1", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", icon: `${CG}/6319/small/USDC.png` }),
   mk(4, { symbol: "AAPLC", name: "Apple", chain: "base", asset_class: "stock", stable: false, decimals: 8, price: "220", icon: `${CG}/102175597/small/aapl_200x200.png`, website: "https://www.coinbase.com/tokenize", description: `About Apple (Coinbase Tokenized Stock) (APPLc)
 
 ${STOCK_ABOUT("Apple")}` }),
@@ -249,11 +253,12 @@ export function createMockGateway(): Server {
           name: a.name,
           chain: a.chain,
           decimals: a.decimals,
+          address: typeof a.address === "string" ? a.address : undefined,
           total: available,
           available,
           held: "0",
           stable: a.stable,
-          tradeable: true,
+          tradeable: a.tradeable,
         };
       });
       return [200, { data }];
@@ -280,12 +285,19 @@ export function createMockGateway(): Server {
       const price = dec(asset.price);
       const qty = dec(String(body.qty));
       const orderId = randomUUID();
+      // Like the live API: the order quote names coins by token address, lower-cased on EVM chains
+      // (e.g. "0x833589fcd6…" for USDC on Base), not by symbol.
+      const idOf = (a: MockAsset) => {
+        const address = String(a.address);
+        return a.chain === "solana" ? address : address.toLowerCase();
+      };
+      const usdcId = idOf(usdc);
       let quote;
       let apply: () => void;
       if (body.side === "buy") {
         const fee = mul(qty, FEE_RATE);
         const out = div(qty, price);
-        quote = { base_asset: asset.symbol, quote_asset: "USDC", qty: toDecimalString(qty), qty_out: toDecimalString(out, 9), fee: toDecimalString(fee, 6), fee_asset: "USDC", issues: [] as string[] };
+        quote = { base_asset: idOf(asset), quote_asset: usdcId, qty: toDecimalString(qty), qty_out: toDecimalString(out, 9), fee: toDecimalString(fee, 6), fee_asset: usdcId, issues: [] as string[] };
         if (balanceOf(user, usdc.id) < qty + fee) return [201, { order_id: "", quote: { ...quote, issues: ["Insufficient balance"] } }];
         apply = () => {
           adjust(user, usdc.id, -(qty + fee));
@@ -295,7 +307,7 @@ export function createMockGateway(): Server {
         if (balanceOf(user, asset.id) < qty) throw new HttpError(422, "failed_precondition", "Insufficient balance", "insufficient_balance");
         const gross = mul(qty, price);
         const fee = mul(gross, FEE_RATE);
-        quote = { base_asset: asset.symbol, quote_asset: "USDC", qty: toDecimalString(qty), qty_out: toDecimalString(gross - fee, 6), fee: toDecimalString(fee, 6), fee_asset: "USDC", issues: [] as string[] };
+        quote = { base_asset: idOf(asset), quote_asset: usdcId, qty: toDecimalString(qty), qty_out: toDecimalString(gross - fee, 6), fee: toDecimalString(fee, 6), fee_asset: usdcId, issues: [] as string[] };
         apply = () => {
           adjust(user, asset.id, -qty);
           adjust(user, usdc.id, gross - fee);

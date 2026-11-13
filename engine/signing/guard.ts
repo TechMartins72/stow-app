@@ -91,14 +91,17 @@ export class SigningGuard {
     if (!order.order_id) return { status: "not_created", issues: order.quote?.issues ?? [] };
 
     const quote = order.quote ?? {};
-    const quoteSymbol = quote.quote_asset ?? "USDC";
     let debits: Debit[];
     let notionalUsd: string;
     if (side === "buy") {
-      // Spend the quoted input plus any fee charged in the same asset.
+      // The quote names the paying coin by symbol or, on the live API, by token address
+      // ("EPjFW…" on Solana, "0x8335…" on Base). Resolve it to the wallet's own coin.
+      const pay = await this.payingCoin(ctx.balances, quote.quote_asset ?? "USDC", asset.chain);
+      // Spend the quoted input plus any fee charged in the same coin.
       let spend = dec(quote.qty ?? amount);
-      if (quote.fee && (quote.fee_asset ?? quoteSymbol) === quoteSymbol) spend += dec(quote.fee);
-      debits = [{ assetId: quoteAssetId(ctx.balances, quoteSymbol, asset.chain), symbol: quoteSymbol, qty: toDecimalString(spend) }];
+      const feeInPayingCoin = !quote.fee_asset || sameCoin(quote.fee_asset, quote.quote_asset ?? "USDC") || sameCoin(quote.fee_asset, pay.symbol);
+      if (quote.fee && feeInPayingCoin) spend += dec(quote.fee);
+      debits = [{ assetId: pay.assetId, symbol: pay.symbol, qty: toDecimalString(spend) }];
       notionalUsd = amount;
     } else {
       debits = [{ assetId: asset.id, symbol: asset.symbol, qty: amount }];
@@ -182,6 +185,22 @@ export class SigningGuard {
     return { balances, locks, guardrails, spentTodayUsd, now };
   }
 
+  /**
+   * The wallet coin a buy pays with, from the quote's identifier (a symbol, or a token
+   * address on the live API). Not in the wallet at all: named from the catalog, so a
+   * refusal still reads "Not enough USDC", and its balance counts as zero.
+   */
+  private async payingCoin(balances: BalanceItem[], identifier: string, chain: string | null): Promise<{ assetId: string; symbol: string }> {
+    const held = findCoin(balances, identifier, chain);
+    if (held) return { assetId: held.asset_id, symbol: held.symbol };
+    const listed = findCoin(
+      (await this.client.listAssets({ asset_class: "crypto" })).map((a) => ({ asset_id: a.id, symbol: a.symbol, chain: a.chain, address: typeof a.address === "string" ? a.address : undefined })),
+      identifier,
+      chain,
+    );
+    return { assetId: listed?.asset_id ?? `${identifier}:${chain ?? "unknown"}`, symbol: listed?.symbol ?? identifier };
+  }
+
   private async valueInUsd(user: GuardUser, asset: Asset, qty: string): Promise<string> {
     const quote = await this.client.quote(user.gatewayUserId, { asset_id: asset.id, side: "sell", qty, qty_unit: "base" });
     return quote.notional;
@@ -225,8 +244,17 @@ export class SigningGuard {
   }
 }
 
-// The stablecoin a buy spends lives on the traded asset's chain.
-function quoteAssetId(balances: BalanceItem[], symbol: string, chain: string | null): string {
-  const row = balances.find((b) => b.symbol === symbol && b.chain === chain);
-  return row?.asset_id ?? `${symbol}:${chain ?? "unknown"}`;
+/**
+ * Two coin identifiers name the same coin: equal symbols, or equal token addresses.
+ * EVM addresses ("0x…") are compared ignoring case (the API lower-cases them);
+ * Solana addresses are case-sensitive and must match exactly.
+ */
+export function sameCoin(a: string, b: string): boolean {
+  if (a === b) return true;
+  return a.startsWith("0x") && b.startsWith("0x") && a.toLowerCase() === b.toLowerCase();
+}
+
+/** The coin on `chain` that `identifier` names, by symbol or by token address. The paying coin lives on the traded asset's chain. */
+export function findCoin<T extends Pick<BalanceItem, "symbol" | "chain" | "address">>(coins: T[], identifier: string, chain: string | null): T | undefined {
+  return coins.find((c) => c.chain === chain && (sameCoin(c.symbol, identifier) || (c.address !== undefined && sameCoin(c.address, identifier))));
 }

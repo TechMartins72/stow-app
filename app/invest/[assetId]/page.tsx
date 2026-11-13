@@ -17,8 +17,9 @@ import { ChangePill } from "@/app/_components/price-bits";
 import { cleanDescription } from "@/app/_lib/catalog-policy";
 import { PriceChart } from "./price-chart";
 import { TradePanel } from "./trade-panel";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Invest · Portfolio Vault" };
+export const metadata: Metadata = { title: "Invest · Stow" };
 
 export default function AssetPage({ params }: PageProps<"/invest/[assetId]">) {
   return (
@@ -27,7 +28,7 @@ export default function AssetPage({ params }: PageProps<"/invest/[assetId]">) {
         <Link href="/invest" className="mb-5 inline-flex items-center gap-1 text-sm font-semibold text-text-muted hover:text-text">
           ← Invest
         </Link>
-        <Suspense fallback={<div aria-busy aria-label="Loading" className="h-[520px] animate-pulse rounded-[24px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading prices" className="h-[520px] rounded-[24px]" />}>
           <AssetDetail params={params} />
         </Suspense>
       </div>
@@ -67,7 +68,7 @@ async function AssetDetail({ params }: Pick<PageProps<"/invest/[assetId]">, "par
           ) : null}
         </div>
         <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="num display text-[40px] leading-none">{asset.priceUsd ? formatUsd(asset.priceUsd) : "—"}</p>
+          <p className="num display text-[calc(40px*var(--fs))] leading-none">{asset.priceUsd ? formatUsd(asset.priceUsd) : "—"}</p>
           {asset.change24h ? (
             <span className="rounded-full bg-white/10 px-2.5 py-1">
               <ChangePill pct={asset.change24h.pct} direction={asset.change24h.direction} />

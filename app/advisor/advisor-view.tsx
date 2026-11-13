@@ -7,6 +7,7 @@ import type { CheckedSuggestion } from "@/app/_server/advisor";
 import { LockIcon, SparkIcon } from "@/app/_components/icons";
 import { useToast } from "@/app/_components/toaster";
 import { approveSuggestionAction, setProfileAction } from "./actions";
+import { Busy } from "@/app/_components/spinner";
 
 const DISMISSED_KEY = "pv:advisor:dismissed";
 const CHANGED = "pv:advisor:dismissed-changed";
@@ -142,7 +143,7 @@ export function AdvisorView({ profile, suggestions }: { profile: RiskProfile; su
                       disabled={pendingId !== null || s.check?.allowed === false}
                       className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {pendingId === s.id ? "Working…" : "Approve"}
+                      {pendingId === s.id ? <Busy>Working…</Busy> : "Approve"}
                     </button>
                   )}
                   <button type="button" onClick={() => dismiss(s.id)} className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold">

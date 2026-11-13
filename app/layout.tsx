@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Michroma, Plus_Jakarta_Sans } from "next/font/google";
+import { ConnectionBanner } from "./_components/connection-banner";
 import { ToastProvider } from "./_components/toaster";
 import "./globals.css";
 
@@ -8,16 +9,26 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
 });
 
+// Wordmark only ("STOW"); everything else is Jakarta.
+const michroma = Michroma({
+  variable: "--font-michroma",
+  weight: "400",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Portfolio Vault",
-  description: "Lock your savings until a date you choose. Crypto, stablecoins and tokenized stocks.",
+  title: "Stow",
+  description: "Save for goals and pay yourself a budget on schedule. The app refuses to break your plan. Dollars, crypto and tokenized stocks.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${jakarta.variable} h-full antialiased`}>
+    <html lang="en" className={`${jakarta.variable} ${michroma.variable} h-full antialiased`}>
       <body className="min-h-full">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <ConnectionBanner />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

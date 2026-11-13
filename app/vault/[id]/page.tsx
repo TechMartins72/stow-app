@@ -8,8 +8,11 @@ import { GatewayErrorCard } from "@/app/_components/home-sections";
 import { LockIcon, PadlockMotif } from "@/app/_components/icons";
 import { countdown, formatDate, formatQty, formatUsd, lockProgress } from "@/app/_lib/format";
 import { loadLock } from "@/app/_server/vault";
+import { dec, ZERO } from "@/engine/decimal";
+import { WithdrawFreeLink } from "./withdraw-free-link";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Lock · Portfolio Vault" };
+export const metadata: Metadata = { title: "Lock · Stow" };
 
 export default function LockDetailPage({ params }: PageProps<"/vault/[id]">) {
   return (
@@ -18,7 +21,7 @@ export default function LockDetailPage({ params }: PageProps<"/vault/[id]">) {
         <Link href="/vault" className="mb-5 inline-flex items-center gap-1 text-sm font-semibold text-text-muted hover:text-text">
           ← Vault
         </Link>
-        <Suspense fallback={<div aria-busy aria-label="Loading lock" className="h-[420px] animate-pulse rounded-[24px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading your plan" className="h-[420px] rounded-[24px]" />}>
           <LockDetail params={params} />
         </Suspense>
       </div>
@@ -54,7 +57,7 @@ async function LockDetail({ params }: Pick<PageProps<"/vault/[id]">, "params">) 
             {lock.finished ? "Fully released" : next ? `Next release in ${next.label}` : "Locked"}
           </span>
         </div>
-        <h1 className="display relative mt-4 text-[30px] leading-tight sm:text-[36px]">{lock.goalName}</h1>
+        <h1 className="display relative mt-4 text-[calc(30px*var(--fs))] leading-tight sm:text-[36px]">{lock.goalName}</h1>
         <p className="num relative mt-2 text-lg font-semibold">
           {lock.finished ? (
             <>All {formatQty(lock.amount)} {lock.symbol} is free to use</>
@@ -126,12 +129,16 @@ async function LockDetail({ params }: Pick<PageProps<"/vault/[id]">, "params">) 
           <li>No money moved when you created it; the app only stops it from leaving.</li>
           <li>Early exit isn&apos;t available.</li>
         </ul>
-        <Link
-          href={`/withdraw?asset=${encodeURIComponent(lock.assetId)}`}
-          className="mt-4 inline-flex rounded-xl border border-border px-4 py-2.5 font-semibold text-text hover:border-text-muted/40"
-        >
-          Withdraw free {lock.symbol}
-        </Link>
+        <WithdrawFreeLink
+          assetId={lock.assetId}
+          symbol={lock.symbol}
+          hasFree={dec(result.freeAmount) > ZERO}
+          nextFreeNote={
+            lock.next
+              ? `All of it is held by your savings goals and budgets. ${formatQty(lock.next.amount)} ${lock.symbol} frees up on ${formatDate(lock.next.releaseAt)}.`
+              : `Your wallet has no ${lock.symbol} outside your savings goals and budgets.`
+          }
+        />
       </section>
     </div>
   );

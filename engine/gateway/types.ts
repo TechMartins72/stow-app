@@ -59,6 +59,8 @@ export interface BalanceItem {
   name?: string;
   chain: string | null;
   decimals?: number;
+  /** The token's on-chain address (mint or contract). Order quotes name coins by it. */
+  address?: string;
   total: string;
   available: string;
   held: string;

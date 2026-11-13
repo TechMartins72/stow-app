@@ -10,8 +10,9 @@ import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
 import { loadHoldings } from "@/app/_server/wallet";
 import { WithdrawFlow } from "./withdraw-flow";
+import { LoadingBlock } from "@/app/_components/spinner";
 
-export const metadata: Metadata = { title: "Withdraw · Portfolio Vault" };
+export const metadata: Metadata = { title: "Withdraw · Stow" };
 
 export default function WithdrawPage({ searchParams }: PageProps<"/withdraw">) {
   return (
@@ -19,9 +20,9 @@ export default function WithdrawPage({ searchParams }: PageProps<"/withdraw">) {
       <div className="mx-auto max-w-xl">
         <header className="mb-6">
           <p className="text-sm font-semibold text-text-muted">Send to another wallet</p>
-          <h1 className="display text-[28px] leading-tight sm:text-[32px]">Withdraw</h1>
+          <h1 className="display text-[calc(28px*var(--fs))] leading-tight sm:text-[32px]">Withdraw</h1>
         </header>
-        <Suspense fallback={<div aria-busy aria-label="Loading" className="h-[420px] animate-pulse rounded-[24px] bg-border/60" />}>
+        <Suspense fallback={<LoadingBlock label="Loading your balances" className="h-[420px] rounded-[24px]" />}>
           <WithdrawLoader searchParams={searchParams} />
         </Suspense>
       </div>

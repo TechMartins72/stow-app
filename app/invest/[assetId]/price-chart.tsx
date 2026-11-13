@@ -8,6 +8,7 @@ import { formatUsd } from "@/app/_lib/format";
 import type { ChartData } from "@/app/_server/market";
 import { ChangePill } from "@/app/_components/price-bits";
 import { chartAction } from "../actions";
+import { Busy } from "@/app/_components/spinner";
 
 const W = 640;
 const H = 220;
@@ -114,7 +115,7 @@ export function PriceChart({ assetId, initial }: { assetId: string; initial: Cha
           </svg>
         ) : (
           <div className="grid h-[200px] place-items-center rounded-2xl bg-surface text-sm text-text-muted">
-            {loading ? "Loading the chart…" : "No price history for this range yet."}
+            {loading ? <Busy>Loading the chart…</Busy> : "No price history for this range yet."}
           </div>
         )}
       </div>

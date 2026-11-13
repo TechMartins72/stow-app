@@ -68,6 +68,17 @@ describe("cashFor", () => {
     expect(cashFor(catalog, "robinhood")?.id).toBe("usdg");
     expect(cashFor(catalog, "arbitrum")).toBeUndefined();
   });
+
+  // The live catalog marks every stablecoin tradeable: false (you pay with USDC, you don't buy it).
+  it("counts a stablecoin as cash even when it isn't itself tradeable", () => {
+    const live = [asset({ symbol: "USDC", chain: "base", stable: true, tradeable: false, id: "usdc-base" })];
+    expect(cashFor(live, "base")?.id).toBe("usdc-base");
+  });
+
+  it("skips a stablecoin that's switched off", () => {
+    const off = [asset({ symbol: "USDC", chain: "base", stable: true, is_active: false, id: "usdc-base" })];
+    expect(cashFor(off, "base")).toBeUndefined();
+  });
 });
 
 describe("summarisePoints", () => {

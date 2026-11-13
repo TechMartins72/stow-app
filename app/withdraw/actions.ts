@@ -5,6 +5,7 @@ import { dec, mul, toDecimalString } from "@/engine/decimal";
 import { isGatewayError, type ProposedAction } from "@/engine";
 import { chainFamily, checkAddress } from "@/app/_lib/address";
 import { checkSendAmount } from "@/app/_lib/send-amount";
+import { describeTransferRefusal } from "@/app/_lib/transfer-refusal";
 import { getCurrentUser } from "@/app/_server/current-user";
 import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
@@ -13,13 +14,16 @@ import { loadHoldings, type Blocker } from "@/app/_server/wallet";
 const Input = z.object({ assetId: z.string().min(1), qty: z.string(), to: z.string() });
 export type WithdrawInput = z.input<typeof Input>;
 
+/** `detail` is True Markets' own explanation (shown only under "Details"), when it gave one. */
+type Failure = { ok: false; message: string; requestId?: string; detail?: string };
+
 export type PreviewResult =
-  | { ok: false; message: string; requestId?: string }
+  | Failure
   | { ok: true; allowed: true }
   | { ok: true; allowed: false; reasons: string[]; blockers: Blocker[]; accessible: string };
 
 export type SendResult =
-  | { ok: false; message: string; requestId?: string }
+  | Failure
   | { ok: true; outcome: "blocked"; reasons: string[] }
   | { ok: true; outcome: "sent"; status: "completed" | "pending" | "failed"; qty: string; fee: string; txHash: string; explorerUrl: string | null };
 
@@ -55,9 +59,11 @@ async function check(raw: WithdrawInput) {
 }
 
 export async function previewWithdrawAction(raw: WithdrawInput): Promise<PreviewResult> {
+  let symbol = "";
   try {
     const c = await check(raw);
     if ("error" in c) return { ok: false, message: c.error! };
+    symbol = c.holding.symbol;
     if (c.decision.allowed) return { ok: true, allowed: true };
     return {
       ok: true,
@@ -67,7 +73,7 @@ export async function previewWithdrawAction(raw: WithdrawInput): Promise<Preview
       accessible: c.holding.accessible,
     };
   } catch (err) {
-    return failure(err);
+    return failure(err, symbol);
   }
 }
 
@@ -76,9 +82,11 @@ export async function previewWithdrawAction(raw: WithdrawInput): Promise<Preview
  * balances and locks, and only then signs. A blocked send is never signed.
  */
 export async function withdrawAction(raw: WithdrawInput): Promise<SendResult> {
+  let symbol = "";
   try {
     const c = await check(raw);
     if ("error" in c) return { ok: false, message: c.error! };
+    symbol = c.holding.symbol;
     const { engine, user, holding, qty, to } = c;
     const asset = (await engine.client.listAssets({ asset_class: "crypto" })).find((a) => a.id === holding.assetId);
     if (!asset) return { ok: false, message: `${holding.symbol} isn't available to send right now.` };
@@ -98,14 +106,24 @@ export async function withdrawAction(raw: WithdrawInput): Promise<SendResult> {
       explorerUrl: t.explorer_url ?? null,
     };
   } catch (err) {
-    return failure(err);
+    return failure(err, symbol);
   }
 }
 
-function failure(err: unknown): { ok: false; message: string; requestId?: string } {
+function failure(err: unknown, symbol: string): Failure {
   const engine = getEngine();
   if (isGatewayError(err, "insufficient_balance")) {
     return { ok: false, message: "Your wallet doesn't have enough to cover this, including fees. Nothing was sent.", requestId: err.requestId };
+  }
+  if (isGatewayError(err)) {
+    // Plain words for people; True Markets' own facts (code, message, metadata) under
+    // "Details" and in the server log, so any refusal can be diagnosed.
+    const { message, detail } = describeTransferRefusal(
+      { type: err.type, code: err.code, message: err.message, metadata: err.metadata, fieldViolations: err.fieldViolations },
+      symbol || "this coin",
+    );
+    console.warn(`[withdraw] True Markets refused (HTTP ${err.status}) ${detail} request_id=${err.requestId ?? "?"}`);
+    return { ok: false, message, requestId: err.requestId, detail };
   }
   const f = gatewayFailure(engine, err); // rethrows anything unexpected, including redirects
   return {

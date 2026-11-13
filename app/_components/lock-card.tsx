@@ -40,16 +40,19 @@ export function LockCard({ lock, now, highlight = false }: { lock: LockView; now
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
+          <p className={`text-[calc(11px*var(--fs))] font-bold tracking-wide uppercase ${scheduled ? "text-hero" : "text-locked dark:text-frame-muted"}`}>
+            {scheduled ? "Budget" : "Savings goal"}
+          </p>
           <h3 className="truncate text-base font-bold">{lock.goalName}</h3>
           <p className="num mt-0.5 text-sm text-text-muted">
             {scheduled
-              ? `${lock.partsReleased} of ${lock.parts} released`
+              ? `${lock.partsReleased} of ${lock.parts} paid out`
               : `${formatQty(lock.amount)} ${lock.symbol}`}
           </p>
         </div>
         <div className="relative shrink-0" aria-label={scheduled ? `${Math.round(progress * 100)}% released` : `${Math.round(progress * 100)}% of the time passed`}>
           <ProgressRing value={progress} />
-          <span className="num absolute inset-0 grid place-items-center text-[11px] font-bold" aria-hidden>
+          <span className="num absolute inset-0 grid place-items-center text-[calc(11px*var(--fs))] font-bold" aria-hidden>
             {Math.round(progress * 100)}%
           </span>
         </div>
@@ -57,7 +60,7 @@ export function LockCard({ lock, now, highlight = false }: { lock: LockView; now
 
       <p className="num display mt-4 text-2xl">{formatUsd(lock.lockedUsd)}</p>
       <p className="num text-xs font-semibold text-text-muted">
-        {scheduled ? `still locked of ${formatQty(lock.amount)} ${lock.symbol}` : "locked"}
+        {scheduled ? `left in this budget of ${formatQty(lock.amount)} ${lock.symbol}` : "saved"}
       </p>
 
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3 text-sm">
@@ -65,7 +68,7 @@ export function LockCard({ lock, now, highlight = false }: { lock: LockView; now
           {scheduled && lock.next ? `${formatQty(lock.next.amount)} ${lock.symbol} in ${left.label}` : `${left.label} left`}
         </span>
         <span className="text-text-muted">
-          {scheduled ? "Next" : "Opens"} {formatDate(nextAt)}
+          {scheduled ? "Next pay-out" : "Goal date"} {formatDate(nextAt)}
         </span>
       </div>
     </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { Busy } from "@/app/_components/spinner";
 
 /**
  * Disabled while the sign-in is in flight. A second press would try to spend
@@ -16,7 +17,7 @@ export function SignInButton() {
       aria-disabled={pending}
       className="mt-6 w-full rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:cursor-wait disabled:opacity-70"
     >
-      {pending ? "Signing in…" : "Sign in to Portfolio Vault"}
+      {pending ? <Busy>Signing in…</Busy> : "Sign in to Stow"}
     </button>
   );
 }
