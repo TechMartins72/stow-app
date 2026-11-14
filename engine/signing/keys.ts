@@ -21,13 +21,27 @@ export function compressedPublicKey(privateKeyHex: string): string {
   return ecdh.getPublicKey("hex", "compressed");
 }
 
+/**
+ * Reads a signer key from the file's text (a file on disk, or the SIGNER_KEY
+ * environment variable on hosts without files). `source` names where it came
+ * from; errors never repeat any of the key itself (Node's JSON errors quote the input).
+ */
+export function parseSignerKey(text: string, source: string): SignerKeyFile {
+  let file: Partial<SignerKeyFile>;
+  try {
+    file = JSON.parse(text) as Partial<SignerKeyFile>;
+  } catch {
+    throw new Error(`${source} is not valid JSON. It should hold the whole signer key file, braces included.`);
+  }
+  if (!file || typeof file !== "object" || !/^[0-9a-f]{64}$/i.test(file.signer_private_key ?? "") || typeof file.signer_public_key !== "string") {
+    throw new Error(`${source} is not a signer key file`);
+  }
+  if (compressedPublicKey(file.signer_private_key!) !== file.signer_public_key.toLowerCase()) {
+    throw new Error(`${source}: public key does not match private key`);
+  }
+  return file as SignerKeyFile;
+}
+
 export function loadSignerKeyFile(path: string): SignerKeyFile {
-  const file = JSON.parse(readFileSync(path, "utf8")) as SignerKeyFile;
-  if (!/^[0-9a-f]{64}$/i.test(file.signer_private_key ?? "")) {
-    throw new Error(`${path} is not a signer key file`);
-  }
-  if (compressedPublicKey(file.signer_private_key) !== file.signer_public_key.toLowerCase()) {
-    throw new Error(`${path}: public key does not match private key`);
-  }
-  return file;
+  return parseSignerKey(readFileSync(path, "utf8"), path);
 }

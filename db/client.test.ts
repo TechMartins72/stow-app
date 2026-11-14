@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CONNECT_TIMEOUT_S, isStuckDbError, QUERY_TIMEOUT_MS, shouldReplacePool, withQueryTimeout } from "./client";
+import { CONNECT_TIMEOUT_S, isStuckDbError, poolSize, QUERY_TIMEOUT_MS, shouldReplacePool, withQueryTimeout } from "./client";
 
 /** A stand-in for postgres.js's lazy query: a promise with chainable `.values()`. */
 function fakeQuery<T>(result: Promise<T>) {
@@ -79,6 +79,18 @@ describe("shouldReplacePool", () => {
 
   it("keeps the pool for ordinary query errors", () => {
     expect(shouldReplacePool({ code: "23505" })).toBe(false);
+  });
+});
+
+describe("poolSize", () => {
+  it("keeps connections open on a long-running server (a computer, a container)", () => {
+    expect(poolSize({})).toEqual({ min: 2, max: 5 });
+  });
+
+  // Vercel runs many short-lived copies of the app; each kept-open connection counts
+  // against Supabase's pooler limit, and a frozen copy can't keep its sockets alive anyway.
+  it("keeps none open, and fewer at once, on Vercel", () => {
+    expect(poolSize({ VERCEL: "1" })).toEqual({ min: 0, max: 3 });
   });
 });
 

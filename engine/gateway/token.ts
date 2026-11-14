@@ -17,10 +17,24 @@ export interface TokenProvider {
   invalidate(): void;
 }
 
+/**
+ * Reads the organization API key from the file's text (a file on disk, or the
+ * TM_API_KEY environment variable on hosts without files). Errors name the
+ * source but never repeat the key (Node's JSON errors quote the input).
+ */
+export function parseApiKey(text: string, source: string): ApiKeyFile {
+  let file: Partial<ApiKeyFile>;
+  try {
+    file = JSON.parse(text) as Partial<ApiKeyFile>;
+  } catch {
+    throw new Error(`${source} is not valid JSON. It should hold the whole API key file, braces included.`);
+  }
+  if (!file || typeof file !== "object" || !file.key_id || !file.private_key) throw new Error(`${source} is not an organization API key file`);
+  return file as ApiKeyFile;
+}
+
 export function loadApiKeyFile(path: string): ApiKeyFile {
-  const file = JSON.parse(readFileSync(path, "utf8")) as ApiKeyFile;
-  if (!file.key_id || !file.private_key) throw new Error(`${path} is not an organization API key file`);
-  return file;
+  return parseApiKey(readFileSync(path, "utf8"), path);
 }
 
 /** Signs `{key_id}.{timestamp}` with the organization API key and exchanges it for a token. */

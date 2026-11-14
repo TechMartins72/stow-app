@@ -55,6 +55,16 @@ export function withQueryTimeout<C extends { unsafe: (...args: never[]) => Promi
   return client;
 }
 
+/**
+ * How many connections to keep and allow. A long-running server keeps two open so
+ * pages rarely pay for a new (sometimes very slow) handshake. On Vercel, many
+ * short-lived copies run at once: each would hold its own, against Supabase's pooler
+ * limit, and a frozen copy can't keep its sockets alive, so none are kept.
+ */
+export function poolSize(env: Record<string, string | undefined> = process.env): { min: number; max: number } {
+  return env.VERCEL ? { min: 0, max: 3 } : { min: 2, max: 5 };
+}
+
 export function createDb(url = process.env.DATABASE_URL, opts: { onStuck?: (err: Error) => void } = {}) {
   if (!url) throw new Error("DATABASE_URL is not set");
   const client = postgres(url, {
@@ -65,11 +75,9 @@ export function createDb(url = process.env.DATABASE_URL, opts: { onStuck?: (err:
       // load, ~90 of 96 queries hung with pipelining on, against ~96 of 96 answered with it off
       // (measured 2026-11-13). The jam also starves the pooler for every other client.
       max_pipeline: 1,
-      max: 5,
-      // Two connections stay open once the pool is used, so a page load reuses them
-      // instead of paying for a new handshake (which can be very slow, see CONNECT_TIMEOUT_S).
-      // keep_alive below stops routers and the pooler from silently dropping them while idle.
-      min: 2,
+      // See poolSize: two kept open on a long-running server (keep_alive below stops routers
+      // and the pooler from silently dropping them while idle); none on Vercel.
+      ...poolSize(),
       // Extra connections above `min` close after a quiet minute; every connection is
       // recycled after 30 minutes so none lives on a stale socket forever.
       idle_timeout: 60,
