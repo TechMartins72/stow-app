@@ -197,7 +197,7 @@ function Fact({ label, value, sub, href }: { label: string; value: string; sub?:
 export function HoldingsList({ holdings }: { holdings: HomeHolding[] }) {
   return (
     <section aria-labelledby="assets-title">
-      <SectionHeading id="assets-title" title="Your assets" action={{ label: "Invest", href: "/invest" }} />
+      <SectionHeading id="assets-title" title="Your assets" action={{ label: "See portfolio", href: "/portfolio" }} />
       <ul className={`${card} divide-y divide-border overflow-hidden`}>
         {holdings.map((h) => (
           <li key={h.assetId}>

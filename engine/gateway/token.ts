@@ -55,17 +55,25 @@ export class ApiKeyTokenProvider implements TokenProvider {
   }
 
   private async mint(): Promise<string> {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signature = sign("sha256", Buffer.from(`${this.apiKey.key_id}.${timestamp}`), {
-      key: createPrivateKey({ key: this.apiKey.private_key, format: "jwk" }),
-      dsaEncoding: "ieee-p1363", // r and s concatenated, which the API expects
-    }).toString("base64url");
-
-    const res = await this.fetchImpl(`${this.baseUrl}/v1/auth/api-key/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key_id: this.apiKey.key_id, timestamp, signature }),
-    });
+    // Minting moves nothing, so a dropped connection is simply tried again (3 tries).
+    let res: Response | undefined;
+    for (let attempt = 1; !res; attempt++) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signature = sign("sha256", Buffer.from(`${this.apiKey.key_id}.${timestamp}`), {
+        key: createPrivateKey({ key: this.apiKey.private_key, format: "jwk" }),
+        dsaEncoding: "ieee-p1363", // r and s concatenated, which the API expects
+      }).toString("base64url");
+      try {
+        res = await this.fetchImpl(`${this.baseUrl}/v1/auth/api-key/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key_id: this.apiKey.key_id, timestamp, signature }),
+        });
+      } catch (err) {
+        if (attempt >= 3) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** (attempt - 1)));
+      }
+    }
     if (!res.ok) throw await errorFromResponse(res);
 
     const minted = (await res.json()) as { access_token: string; expires_in: string | number };

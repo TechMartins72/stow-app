@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GatewayClient } from "./client";
 import type { TokenProvider } from "./token";
 
@@ -56,5 +56,64 @@ describe("GatewayClient market data", () => {
       throw new Error("should not be called");
     }) as unknown as typeof fetch;
     expect(await new GatewayClient("http://gateway.test", tokens, fakeFetch).priceHistoryBatch([], "1d", "1h")).toEqual([]);
+  });
+});
+
+describe("GatewayClient on a flaky connection", () => {
+  // What Node's fetch throws when the connection can't be opened (seen live 2026-11-14).
+  const connectTimeout = () =>
+    Object.assign(new TypeError("fetch failed"), {
+      cause: Object.assign(new Error("Connect Timeout Error"), { code: "UND_ERR_CONNECT_TIMEOUT" }),
+    });
+
+  function flaky(failures: number) {
+    const calls: string[] = [];
+    const fakeFetch = (async (url: URL, init: RequestInit) => {
+      calls.push(`${init.method} ${new URL(String(url)).pathname}`);
+      if (calls.length <= failures) throw connectTimeout();
+      return new Response(JSON.stringify({ data: [], qty: "1", price: "1", notional: "1", fee: "0" }), { status: 200 });
+    }) as unknown as typeof fetch;
+    return { calls, client: new GatewayClient("http://gateway.test", tokens, fakeFetch) };
+  }
+
+  it("retries a read when the connection fails, then succeeds", async () => {
+    vi.useFakeTimers();
+    const { calls, client } = flaky(2);
+    const done = client.getBalances("u1");
+    await vi.runAllTimersAsync();
+    await expect(done).resolves.toEqual([]);
+    expect(calls).toHaveLength(3);
+    vi.useRealTimers();
+  });
+
+  it("retries a price quote too: it moves nothing", async () => {
+    vi.useFakeTimers();
+    const { calls, client } = flaky(1);
+    const done = client.quote("u1", { asset_id: "sol", side: "buy", qty: "1", qty_unit: "quote" });
+    await vi.runAllTimersAsync();
+    await expect(done).resolves.toMatchObject({ qty: "1" });
+    expect(calls).toEqual(["POST /v1/gateway/quotes", "POST /v1/gateway/quotes"]);
+    vi.useRealTimers();
+  });
+
+  it("gives up after three tries and passes the connection error on", async () => {
+    vi.useFakeTimers();
+    const { calls, client } = flaky(10);
+    const done = client.getBalances("u1");
+    const settled = expect(done).rejects.toMatchObject({ cause: { code: "UND_ERR_CONNECT_TIMEOUT" } });
+    await vi.runAllTimersAsync();
+    await settled;
+    expect(calls).toHaveLength(3);
+    vi.useRealTimers();
+  });
+
+  it("never resends an order or a transfer by itself: the outcome would be unknown", async () => {
+    const order = flaky(1);
+    await expect(order.client.createOrder("u1", { asset_id: "sol", side: "buy", type: "market", qty: "1", qty_unit: "quote" })).rejects.toThrow("fetch failed");
+    expect(order.calls).toEqual(["POST /v1/gateway/orders"]);
+
+    const transfer = flaky(1);
+    await expect(transfer.client.createTransfer("u1", { asset_id: "usdc", qty: "1", qty_unit: "base", to: "x" })).rejects.toThrow("fetch failed");
+    expect(transfer.calls).toEqual(["POST /v1/gateway/transfers"]);
   });
 });

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isGatewayError, type Engine } from "@/engine";
+import { isGatewayError, isNetworkFailure, type Engine } from "@/engine";
 import { recoverFromDbError } from "./engine";
 
 export interface GatewayFailure {
@@ -15,8 +15,9 @@ export interface GatewayFailure {
 export function gatewayFailure(engine: Engine, err: unknown): GatewayFailure {
   const mode = engine.config.mode;
   if (isGatewayError(err)) return { ok: false, reason: "gateway_error", mode, requestId: err.requestId };
-  const code = (err as { cause?: { code?: string } })?.cause?.code;
-  if (code === "ECONNREFUSED" || code === "ENOTFOUND") return { ok: false, reason: "gateway_unreachable", mode };
+  // No answer at all (connection refused, timed out, cut, or the name didn't resolve):
+  // show "we can't reach your wallet" instead of an error page.
+  if (isNetworkFailure(err)) return { ok: false, reason: "gateway_unreachable", mode };
   // Not a Gateway problem. If it's a stuck database pool, start a fresh one for the next request.
   recoverFromDbError(err);
   throw err;

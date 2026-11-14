@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./account-menu";
-import { BookIcon, GearIcon, HomeIcon, ListIcon, LockIcon, PieIcon, SparkIcon, StowMark } from "./icons";
+import { BookIcon, GearIcon, HomeIcon, ListIcon, LockIcon, PieIcon, SparkIcon, StowMark, WalletIcon } from "./icons";
 
 type NavItem = { label: string; href: string; icon: (p: { className?: string }) => React.ReactNode; ready: boolean };
 
-// Screens that don't exist yet show as "Soon".
+// Screens that don't exist yet show as "Soon". The first five are the phone's tab bar;
+// Advisor is optional (it can be switched off), so on phones it's reached from Home's card.
 const NAV: NavItem[] = [
   { label: "Home", href: "/", icon: HomeIcon, ready: true },
+  { label: "Portfolio", href: "/portfolio", icon: WalletIcon, ready: true },
   { label: "Invest", href: "/invest", icon: PieIcon, ready: true },
   { label: "Vault", href: "/vault", icon: LockIcon, ready: true },
-  { label: "Advisor", href: "/advisor", icon: SparkIcon, ready: true },
   { label: "Activity", href: "/activity", icon: ListIcon, ready: true },
+  { label: "Advisor", href: "/advisor", icon: SparkIcon, ready: true },
   { label: "Learn", href: "/learn", icon: BookIcon, ready: true },
   { label: "Settings", href: "/settings", icon: GearIcon, ready: false },
 ];

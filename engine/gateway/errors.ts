@@ -37,6 +37,35 @@ export function isGatewayError(err: unknown, code?: string): err is GatewayError
   return err instanceof GatewayError && (code === undefined || err.code === code);
 }
 
+/** Connection-level failure codes from Node's fetch (undici) and the OS: no answer was received. */
+const NETWORK_CODES = new Set([
+  "ECONNREFUSED",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "EPIPE",
+  "ENETUNREACH",
+  "EHOSTUNREACH",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+/**
+ * True when a request to True Markets never got an answer: the connection couldn't be
+ * opened, timed out or was cut. (fetch throws "fetch failed" with the reason in `cause`.)
+ */
+export function isNetworkFailure(err: unknown): boolean {
+  if (err instanceof GatewayError) return false;
+  for (let e = err, depth = 0; e && typeof e === "object" && depth < 3; e = (e as { cause?: unknown }).cause, depth++) {
+    const code = (e as { code?: unknown }).code;
+    if (typeof code === "string" && NETWORK_CODES.has(code)) return true;
+  }
+  return false;
+}
+
 export async function errorFromResponse(res: Response): Promise<GatewayError> {
   let body: Record<string, unknown> = {};
   try {

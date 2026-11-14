@@ -28,7 +28,16 @@ interface RequestOptions {
   query?: Record<string, string | number | undefined>;
   /** Public endpoints (the asset catalog) need no token. */
   auth?: boolean;
+  /**
+   * A POST that changes nothing (a price quote), so resending it after a dropped
+   * connection is harmless. Orders and transfers must never set this: if a resend
+   * reached True Markets twice, the outcome would be unknown.
+   */
+  safeToRepeat?: boolean;
 }
+
+/** Tries for a request whose connection fails (reads and quotes only), with backoff between. */
+const NETWORK_TRIES = 3;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -106,7 +115,7 @@ export class GatewayClient {
   // ---- Orders ----
 
   async quote(userId: string, req: QuoteRequest): Promise<QuoteResponse> {
-    return this.post("/v1/gateway/quotes", req, { onBehalfOf: userId });
+    return this.post("/v1/gateway/quotes", req, { onBehalfOf: userId, safeToRepeat: true });
   }
 
   async createOrder(userId: string, req: CreateOrderRequest): Promise<CreateOrderResponse> {
@@ -189,16 +198,28 @@ export class GatewayClient {
       if (opts.auth !== false) headers.Authorization = `Bearer ${await this.tokens.getToken()}`;
       if (opts.onBehalfOf) headers["TM-On-Behalf-Of"] = opts.onBehalfOf;
 
-      const res = await this.fetchImpl(url, {
-        method,
-        headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
-        // Money data must always be live. `no-store` stops caching; a fresh signal
-        // stops Next.js from reusing an identical GET within one render (otherwise a
-        // balance read after funding returns the stale, earlier answer).
-        cache: "no-store",
-        signal: new AbortController().signal,
-      });
+      let res: Response;
+      try {
+        res = await this.fetchImpl(url, {
+          method,
+          headers,
+          body: body === undefined ? undefined : JSON.stringify(body),
+          // Money data must always be live. `no-store` stops caching; a fresh signal
+          // stops Next.js from reusing an identical GET within one render (otherwise a
+          // balance read after funding returns the stale, earlier answer).
+          cache: "no-store",
+          signal: new AbortController().signal,
+        });
+      } catch (err) {
+        // The connection failed (timeout, reset, lookup). Reads and quotes are safe to
+        // try again; anything that could create or move something is never resent.
+        const repeatable = method === "GET" || opts.safeToRepeat === true;
+        if (repeatable && attempt < NETWORK_TRIES) {
+          await sleep(500 * 2 ** (attempt - 1));
+          continue;
+        }
+        throw err;
+      }
       if (res.ok) return (await res.json()) as T;
 
       const err = await errorFromResponse(res);

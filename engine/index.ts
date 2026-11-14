@@ -62,7 +62,7 @@ function mockApiKey(): ApiKeyFile {
 }
 
 export { GatewayClient } from "./gateway/client";
-export { GatewayError, isGatewayError } from "./gateway/errors";
+export { GatewayError, isGatewayError, isNetworkFailure } from "./gateway/errors";
 export type * from "./gateway/types";
 export { SigningGuard, type GuardOutcome, type GuardUser } from "./signing/guard";
 export { createLock, releaseLock, LockError } from "./vault/locks";
