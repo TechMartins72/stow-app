@@ -59,3 +59,26 @@ describe("key parsing", () => {
     expect(() => parseSignerKey(JSON.stringify({ ...signer, signer_public_key: other.signer_public_key }), "SIGNER_KEY")).toThrow(/does not match/);
   });
 });
+
+describe("pasted key values (host settings pages)", () => {
+  it("accepts a value wrapped in quotes, or with a byte-order mark and spaces", () => {
+    expect(parseApiKey(`'${apiKeyJson}'`, "TM_API_KEY").key_id).toBe("k-test");
+    expect(parseApiKey(`"${apiKeyJson}"`, "TM_API_KEY").key_id).toBe("k-test");
+    expect(parseSignerKey(`\uFEFF  ${signerJson}\n`, "SIGNER_KEY").signer_public_key).toBe(signer.signer_public_key);
+  });
+
+  it("says when a paste was cut off, by its shape only", () => {
+    const cut = apiKeyJson.slice(0, 40);
+    const err = (() => {
+      try {
+        parseApiKey(cut, "TM_API_KEY");
+      } catch (e) {
+        return (e as Error).message;
+      }
+    })();
+    expect(err).toMatch(/got 40 characters, starting with "\{" and ending with/);
+    expect(err).not.toContain(cut.slice(1));
+    expect(() => parseApiKey("{", "TM_API_KEY")).toThrow(/got 1 characters, starting with "\{" and ending with "\{"/);
+    expect(() => parseApiKey("", "TM_API_KEY")).toThrow(/it is empty/);
+  });
+});

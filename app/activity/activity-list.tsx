@@ -8,6 +8,7 @@ import { ArrowRightIcon, LockIcon, PlusIcon, SparkIcon } from "@/app/_components
 const ICON: Record<ActivityKind, { bg: string; node: React.ReactNode }> = {
   buy: { bg: "bg-hero text-white", node: <PlusIcon className="size-4" /> },
   sell: { bg: "bg-frame text-white", node: <ArrowRightIcon className="size-4 rotate-180" /> },
+  deposit: { bg: "bg-positive text-white", node: <ArrowRightIcon className="size-4 rotate-135" /> },
   send: { bg: "bg-frame text-white", node: <ArrowRightIcon className="size-4 -rotate-45" /> },
   lock: { bg: "bg-locked text-white", node: <LockIcon className="size-4" /> },
   release: { bg: "bg-positive text-white", node: <span className="text-sm font-bold">✓</span> },
@@ -53,7 +54,7 @@ export function ActivityList({ items, nowIso }: { items: ActivityItem[]; nowIso:
       {groups.length === 0 ? (
         <div className="rounded-[20px] border border-dashed border-border bg-surface-raised p-8 text-center">
           <p className="font-bold">Nothing here yet</p>
-          <p className="mt-1 text-sm text-text-muted">Trades, sends, locks and anything the app refused will show up here.</p>
+          <p className="mt-1 text-sm text-text-muted">Deposits, trades, sends, locks and anything the app refused will show up here.</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -103,6 +104,13 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
       </time>
     </div>
   );
+  if (item.href?.startsWith("https://")) {
+    return (
+      <a href={item.href} target="_blank" rel="noopener noreferrer" className="block hover:bg-surface" aria-label={`${item.title}, view on the block explorer (opens in a new tab)`}>
+        {body}
+      </a>
+    );
+  }
   return item.href ? (
     <Link href={item.href} className="block hover:bg-surface">
       {body}

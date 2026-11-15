@@ -1,5 +1,6 @@
 import { createECDH, generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { parseKeyJson } from "../key-json";
 
 /** The signer key file format the developer console downloads: hex keys. */
 export interface SignerKeyFile {
@@ -27,12 +28,7 @@ export function compressedPublicKey(privateKeyHex: string): string {
  * from; errors never repeat any of the key itself (Node's JSON errors quote the input).
  */
 export function parseSignerKey(text: string, source: string): SignerKeyFile {
-  let file: Partial<SignerKeyFile>;
-  try {
-    file = JSON.parse(text) as Partial<SignerKeyFile>;
-  } catch {
-    throw new Error(`${source} is not valid JSON. It should hold the whole signer key file, braces included.`);
-  }
+  const file = parseKeyJson(text, source, "signer key file") as Partial<SignerKeyFile>;
   if (!file || typeof file !== "object" || !/^[0-9a-f]{64}$/i.test(file.signer_private_key ?? "") || typeof file.signer_public_key !== "string") {
     throw new Error(`${source} is not a signer key file`);
   }

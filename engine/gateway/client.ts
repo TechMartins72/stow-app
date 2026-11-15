@@ -171,7 +171,7 @@ export class GatewayClient {
 
   // ---- Activity ----
 
-  async listTransactions(userId: string, query: { type?: "order" | "transfer"; cursor?: string; limit?: number } = {}) {
+  async listTransactions(userId: string, query: { type?: string; cursor?: string; limit?: number } = {}) {
     return this.get<Page<TransactionRow>>("/v1/gateway/transactions", { onBehalfOf: userId, query });
   }
 

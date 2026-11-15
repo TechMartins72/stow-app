@@ -22,10 +22,10 @@ export default function SignInPage() {
     <div className="min-h-dvh bg-frame text-frame-text lg:grid lg:grid-cols-[1.1fr_1fr]">
       {/* Story */}
       <section className="relative flex flex-col overflow-hidden px-6 pt-6 pb-10 sm:px-10 lg:py-10">
-        <div className="flex items-center gap-2.5">
+        <Link href="/welcome" className="flex w-fit items-center gap-2.5" aria-label="About Stow">
           <StowMark className="size-9" />
           <span className="wordmark text-[calc(17px*var(--fs))]">Stow</span>
-        </div>
+        </Link>
         <div className="relative mt-10 overflow-hidden rounded-[24px] bg-hero p-7 sm:p-10 lg:mt-auto">
           <PadlockMotif className="pointer-events-none absolute -right-12 -bottom-16 size-72 text-white/15" />
           <h1 className="display relative max-w-md text-[calc(40px*var(--fs))] leading-[1.05] text-white sm:text-[52px]">Save it. Budget it.</h1>

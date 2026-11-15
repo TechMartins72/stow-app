@@ -161,12 +161,29 @@ export interface TransferDetail {
   updated_at: string;
 }
 
+/** Money that arrived from outside (a deposit). Always `completed`; it has no status of its own. */
+export interface ReceivedTransferDetail {
+  id: string;
+  chain: string;
+  tx_hash: string;
+  from_address: string;
+  to_address: string;
+  token_address: string;
+  token_symbol: string;
+  /** Amount received, in `token_symbol`. */
+  amount: string;
+  /** Time of the block that carried it. */
+  observed_at: string;
+}
+
 export interface TransactionRow {
   id: string;
-  type: "order" | "transfer" | "ramp";
+  type: "order" | "transfer" | "ramp" | "received_transfer";
   status: "pending" | "completed" | "failed" | "canceled";
   order?: OrderDetail;
   transfer?: TransferDetail;
+  received_transfer?: ReceivedTransferDetail;
+  explorer_url?: string | null;
   [key: string]: unknown;
 }
 

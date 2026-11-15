@@ -74,9 +74,10 @@ export function AppShell({ active, children }: { active: string; children: React
   );
 }
 
+/** The logo leads to the landing page (about Stow); Home is in the nav. */
 function Brand() {
   return (
-    <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-xl px-2 max-[359px]:px-0 focus-visible:outline-2 focus-visible:outline-hero">
+    <Link href="/welcome" aria-label="About Stow" className="flex min-w-0 items-center gap-2.5 rounded-xl px-2 max-[359px]:px-0 focus-visible:outline-2 focus-visible:outline-hero">
       <StowMark className="size-8" />
       <span className="wordmark text-[calc(17px*var(--fs))]">Stow</span>
     </Link>

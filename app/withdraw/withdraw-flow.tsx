@@ -267,6 +267,8 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
           value={to}
           onChange={(e) => setTo(e.target.value)}
           autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
           spellCheck={false}
           placeholder={family === "solana" ? "e.g. 9xQeWv…VFin" : "0x…"}
           aria-invalid={touched && !!addressError}

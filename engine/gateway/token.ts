@@ -1,5 +1,6 @@
 import { createPrivateKey, sign, type JsonWebKey } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { parseKeyJson } from "../key-json";
 import { errorFromResponse } from "./errors";
 
 // Organization tokens last one hour and have no refresh token, so mint a new
@@ -23,12 +24,7 @@ export interface TokenProvider {
  * source but never repeat the key (Node's JSON errors quote the input).
  */
 export function parseApiKey(text: string, source: string): ApiKeyFile {
-  let file: Partial<ApiKeyFile>;
-  try {
-    file = JSON.parse(text) as Partial<ApiKeyFile>;
-  } catch {
-    throw new Error(`${source} is not valid JSON. It should hold the whole API key file, braces included.`);
-  }
+  const file = parseKeyJson(text, source, "API key file") as Partial<ApiKeyFile>;
   if (!file || typeof file !== "object" || !file.key_id || !file.private_key) throw new Error(`${source} is not an organization API key file`);
   return file as ApiKeyFile;
 }

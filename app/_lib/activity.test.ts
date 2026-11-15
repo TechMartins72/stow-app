@@ -80,3 +80,42 @@ describe("tickers", () => {
     expect(items[0].title).toBe("Bought 0.1 AAPL");
   });
 });
+
+describe("deposits (money that arrived from outside)", () => {
+  const deposit: TransactionRow = {
+    id: "r1",
+    type: "received_transfer",
+    status: "completed",
+    created_at: "2026-11-06T08:00:00Z",
+    explorer_url: "https://solscan.io/tx/abc",
+    received_transfer: {
+      id: "r1", chain: "solana", tx_hash: "abc", from_address: "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin", to_address: "mine",
+      token_address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", token_symbol: "USDC", amount: "4.7", observed_at: "2026-11-06T08:00:00Z",
+    },
+  };
+  const items = buildActivity({ transactions: [deposit, buy], log: [], locks: [], now });
+  const item = items.find((i) => i.kind === "deposit");
+
+  it("lists a deposit with the amount, sender and network", () => {
+    expect(item).toMatchObject({ title: "Received 4.7 USDC", status: "done", at: new Date("2026-11-06T08:00:00Z") });
+    expect(item?.detail).toMatch(/^From 9xQe.*VFin · Solana$/);
+  });
+
+  it("links to the public block explorer, when there is one", () => {
+    expect(item?.href).toBe("https://solscan.io/tx/abc");
+    const noLink = buildActivity({ transactions: [{ ...deposit, explorer_url: null }], log: [], locks: [], now });
+    expect(noLink[0].href).toBeUndefined();
+  });
+
+  it("shows deposits under the money in-and-out filter, not as trades", () => {
+    expect(filterActivity(items, "transfers").map((i) => i.kind)).toEqual(["deposit"]);
+    expect(filterActivity(items, "trades").map((i) => i.kind)).toEqual(["buy"]);
+  });
+
+  it("names a stock deposit by its ticker", () => {
+    const stock = { ...deposit, received_transfer: { ...deposit.received_transfer!, token_symbol: "AAPLC", amount: "0.5", chain: "base" } };
+    const [row] = buildActivity({ transactions: [stock], log: [], locks: [], now, tickers: { AAPLC: "AAPL" } });
+    expect(row.title).toBe("Received 0.5 AAPL");
+    expect(row.detail).toMatch(/· Base$/);
+  });
+});

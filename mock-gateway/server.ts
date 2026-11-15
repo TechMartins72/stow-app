@@ -134,6 +134,8 @@ export function createMockGateway(): Server {
   const users = new Map<string, MockUser>(); // by user_id
   const orders = new Map<string, PendingOrder>();
   const transfers = new Map<string, PendingTransfer>();
+  // Practice top-ups, reported like the live API reports deposits.
+  const received: { userId: string; row: Record<string, unknown> }[] = [];
 
   const assetById = (id: string) => {
     const asset = ASSETS.find((a) => a.id === id);
@@ -215,7 +217,22 @@ export function createMockGateway(): Server {
     if (method === "POST" && path === "/mock/fund") {
       const user = users.get(body.user_id);
       if (!user) throw new HttpError(404, "not_found", "Unknown user");
-      adjust(user, assetById(body.asset_id).id, dec(String(body.amount)));
+      const asset = assetById(body.asset_id);
+      adjust(user, asset.id, dec(String(body.amount)));
+      const at = new Date().toISOString();
+      const id = randomUUID();
+      received.push({
+        userId: user.user_id,
+        row: {
+          id, type: "received_transfer", asset_flow: "in", status: "completed", created_at: at, completed_at: at,
+          qty: String(body.amount), asset_id: null, asset_symbol: asset.symbol, tx_hash: null, explorer_url: null,
+          received_transfer: {
+            id, chain: asset.chain, tx_hash: `mock-${id}`, from_address: "MockFaucet1111111111111111111111111111111111",
+            to_address: user.wallets.find((w) => w.chain_family === (asset.chain === "solana" ? "solana" : "evm"))?.address ?? "",
+            token_address: String(asset.address), token_symbol: asset.symbol, amount: String(body.amount), observed_at: at,
+          },
+        },
+      });
       return [200, { ok: true }];
     }
 
@@ -418,6 +435,7 @@ export function createMockGateway(): Server {
       const rows = [
         ...[...orders.values()].filter((o) => o.userId === user.user_id && o.detail.status !== "initialized").map((o) => ({ id: o.detail.order_id, type: "order", status: o.detail.status === "complete" ? "completed" : o.detail.status, order: o.detail, created_at: o.detail.created_at })),
         ...[...transfers.values()].filter((t) => t.userId === user.user_id && t.detail.status !== "awaiting_signature").map((t) => ({ id: t.detail.id, type: "transfer", status: t.detail.status, transfer: t.detail, created_at: t.detail.created_at })),
+        ...received.filter((r) => r.userId === user.user_id).map((r) => r.row),
       ].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
       return [200, { data: rows, pagination: { next_cursor: null, limit: 50 } }];
     }

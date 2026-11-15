@@ -6,10 +6,10 @@ import { dec } from "@/engine/decimal";
 import { tranchesOf } from "@/engine/vault/schedule";
 import type { TransactionRow } from "@/engine/gateway/types";
 import type { ActionLogEntry, Lock } from "@/engine/vault/types";
-import { shortAddress } from "./address";
+import { networkLabel, shortAddress } from "./address";
 import { formatQty, formatUsd } from "./format";
 
-export type ActivityKind = "buy" | "sell" | "send" | "lock" | "release" | "blocked";
+export type ActivityKind = "buy" | "sell" | "deposit" | "send" | "lock" | "release" | "blocked";
 export type ActivityFilter = "all" | "trades" | "transfers" | "locks" | "blocked";
 
 export interface ActivityItem {
@@ -21,13 +21,14 @@ export interface ActivityItem {
   /** Who asked for it, when we know. */
   actor?: "you" | "advisor";
   status: "done" | "pending" | "failed" | "blocked";
+  /** A page in the app, or (starting with https://) a public block explorer. */
   href?: string;
 }
 
 export const FILTERS: { value: ActivityFilter; label: string; kinds: ActivityKind[] }[] = [
-  { value: "all", label: "All", kinds: ["buy", "sell", "send", "lock", "release", "blocked"] },
+  { value: "all", label: "All", kinds: ["buy", "sell", "deposit", "send", "lock", "release", "blocked"] },
   { value: "trades", label: "Trades", kinds: ["buy", "sell"] },
-  { value: "transfers", label: "Sends", kinds: ["send"] },
+  { value: "transfers", label: "Deposits & sends", kinds: ["deposit", "send"] },
   { value: "locks", label: "Locks", kinds: ["lock", "release"] },
   { value: "blocked", label: "Blocked", kinds: ["blocked"] },
 ];
@@ -49,6 +50,20 @@ export function buildActivity(input: {
   const items: ActivityItem[] = [];
 
   for (const t of transactions) {
+    if (t.type === "received_transfer" && t.received_transfer) {
+      // Money in from outside. True Markets reports it once it's in a block, so it's always done.
+      const r = t.received_transfer;
+      items.push({
+        id: t.id,
+        at: new Date(r.observed_at ?? String(t.created_at ?? now.toISOString())),
+        kind: "deposit",
+        title: `Received ${formatQty(r.amount, 6)} ${ticker(r.token_symbol)}`,
+        detail: `From ${shortAddress(r.from_address)} · ${networkLabel(r.chain)}`,
+        status: "done",
+        href: typeof t.explorer_url === "string" && t.explorer_url.startsWith("https://") ? t.explorer_url : undefined,
+      });
+      continue;
+    }
     const at = new Date(String(t.created_at ?? t.order?.created_at ?? t.transfer?.created_at ?? now.toISOString()));
     if (t.type === "order" && t.order) {
       const o = t.order;
