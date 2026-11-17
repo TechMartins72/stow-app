@@ -13,6 +13,8 @@ import { loadHoldings } from "./wallet";
 export interface CheckedSuggestion extends Suggestion {
   /** The guard's answer if this were done now; null for suggestions that sign nothing. */
   check: { allowed: boolean; reason?: string } | null;
+  /** Ticker for the market-context line (buys and sells of non-stable assets); display only. */
+  marketTicker: string | null;
 }
 
 const g = globalThis as typeof globalThis & { __profiles?: Map<string, RiskProfile>; __advisorOff?: Set<string> };
@@ -90,10 +92,11 @@ export async function loadAdvisor(engine: Engine, user: GuardUser) {
   const { profile, suggestions, holdings, catalog } = await computeSuggestions(engine, user);
   const checked: CheckedSuggestion[] = await Promise.all(
     suggestions.map(async (s) => {
+      const marketTicker = marketTickerOf(s, holdings, catalog);
       const action = proposed(s, holdings, catalog);
-      if (!action) return { ...s, check: null };
+      if (!action) return { ...s, check: null, marketTicker };
       const decision = await engine.guard.preview(user, action);
-      return { ...s, check: { allowed: decision.allowed, reason: decision.violations[0]?.message } };
+      return { ...s, check: { allowed: decision.allowed, reason: decision.violations[0]?.message }, marketTicker };
     }),
   );
   const log = (await engine.store.listLog(user.id, 50)).filter((e) => e.actor === "advisor").slice(0, 10);
@@ -101,6 +104,14 @@ export async function loadAdvisor(engine: Engine, user: GuardUser) {
     catalog.map((a) => [a.symbol, tickerOf({ symbol: a.symbol, chain: a.chain, asset_class: a.asset_class })]),
   );
   return { profile, suggestions: checked, log, tickers };
+}
+
+function marketTickerOf(s: Suggestion, holdings: Awaited<ReturnType<typeof loadHoldings>>, catalog: Asset[]): string | null {
+  if (s.action.kind !== "sell" && s.action.kind !== "buy") return null;
+  const { assetId } = s.action;
+  if (holdings.find((h) => h.assetId === assetId)?.stable) return null;
+  const a = catalog.find((x) => x.id === assetId);
+  return a ? tickerOf({ symbol: a.symbol, chain: a.chain, asset_class: a.asset_class }) : null;
 }
 
 function proposed(

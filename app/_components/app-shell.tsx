@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./account-menu";
+import { AskWidget } from "./ask-widget";
 import { BookIcon, GearIcon, HomeIcon, ListIcon, LockIcon, PieIcon, SparkIcon, StowMark, WalletIcon } from "./icons";
 
 type NavItem = { label: string; href: string; icon: (p: { className?: string }) => React.ReactNode; ready: boolean };
@@ -70,6 +71,8 @@ export function AppShell({ active, children }: { active: string; children: React
           ))}
         </nav>
       </div>
+
+      <AskWidget />
     </div>
   );
 }

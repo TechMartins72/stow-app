@@ -141,3 +141,15 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* Ask Stow's panel opens out of its button (bottom-right). Skipped with reduced motion. */
+@keyframes ask-open {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

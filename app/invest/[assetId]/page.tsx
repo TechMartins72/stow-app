@@ -17,6 +17,7 @@ import { ChangePill } from "@/app/_components/price-bits";
 import { cleanDescription } from "@/app/_lib/catalog-policy";
 import { PriceChart } from "./price-chart";
 import { TradePanel } from "./trade-panel";
+import { WhyMoving } from "./why-moving";
 import { LoadingBlock } from "@/app/_components/spinner";
 
 export const metadata: Metadata = { title: "Invest · Stow" };
@@ -87,6 +88,10 @@ async function AssetDetail({ params }: Pick<PageProps<"/invest/[assetId]">, "par
       </section>
 
       <PriceChart assetId={asset.assetId} initial={chart} />
+
+      <Suspense fallback={null}>
+        <WhyMoving ticker={asset.ticker} name={asset.name} />
+      </Suspense>
 
       {asset.tradability === "sell_only" ? (
         <p role="note" className="rounded-2xl bg-warning-bg p-4 text-sm">

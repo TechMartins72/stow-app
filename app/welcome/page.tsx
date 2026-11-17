@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   ArrowRightIcon,
   CalendarIcon,
+  ChatIcon,
   LockIcon,
   PadlockMotif,
   SparkIcon,
@@ -26,6 +27,7 @@ const NAV = [
   { href: "#savings", label: "Savings goals" },
   { href: "#budgets", label: "Budgets" },
   { href: "#safety", label: "How it says no" },
+  { href: "#ask", label: "Ask Stow" },
   { href: "#faq", label: "Questions" },
 ];
 
@@ -49,6 +51,10 @@ const FAQ = [
   {
     q: "What does the Advisor do?",
     a: "It suggests ways to save more and stay on budget. Nothing happens until you approve, it follows the same rules you do, it never uses leverage, and you can switch it off.",
+  },
+  {
+    q: "What is Ask Stow?",
+    a: "A chat that answers questions about your money in Stow, using your own balances, goals and budgets plus live market data from True Markets. It's powered by Claude, an AI model from Anthropic. It explains but never acts: it can't move money or trade, it isn't financial advice, and it can make mistakes, so check anything important.",
   },
 ];
 
@@ -289,6 +295,42 @@ export default function WelcomePage() {
           </div>
         </section>
 
+        {/* Ask Stow */}
+        <section id="ask" className="scroll-mt-16 px-6 py-20 lg:py-28">
+          <div className="mx-auto max-w-6xl">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
+              <Reveal>
+                <SectionIntro
+                  eyebrow="Ask Stow"
+                  eyebrowClass="text-hero"
+                  title="Questions about your money, answered."
+                  body="Ask in plain words. Ask Stow reads your own balances, goals and budgets, checks live market data from True Markets, and explains what's going on."
+                />
+              </Reveal>
+              <AskExample />
+            </div>
+            <Reveal className="mt-10 grid gap-4 sm:grid-cols-3">
+              <Fact
+                icon={<CalendarIcon className="size-5" />}
+                title="Knows your plans"
+                body="What's free to spend, what's locked, and when each part unlocks."
+              />
+              <Fact
+                icon={<SparkIcon className="size-5" />}
+                title="Live market data"
+                body="Prices and daily news summaries from True Markets."
+                delay="0.1"
+              />
+              <Fact
+                icon={<LockIcon className="size-5" />}
+                title="Explains, never acts"
+                body="It can't move money or trade, and it isn't financial advice."
+                delay="0.2"
+              />
+            </Reveal>
+          </div>
+        </section>
+
         {/* What you can stow + Activity */}
         <section className="px-6 py-20 lg:py-28">
           <Reveal className="mx-auto max-w-6xl">
@@ -404,14 +446,19 @@ export default function WelcomePage() {
               financial advice.
             </p>
           </div>
-          <Link
-            href={APP}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-frame-text hover:underline"
-          >
-            Open the app →
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link href="/privacy" className="hover:text-frame-text">
+              Privacy
+            </Link>
+            <Link
+              href={APP}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-frame-text hover:underline"
+            >
+              Open the app →
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
@@ -485,6 +532,58 @@ function WayCard(props: {
         <ArrowRightIcon className="size-4 transition group-hover:translate-x-0.5" />
       </span>
     </a>
+  );
+}
+
+/** An illustrative Ask Stow conversation (labelled as an example; not live data). */
+function AskExample() {
+  const bubble =
+    "max-w-[88%] rounded-[20px] px-4 py-3 text-[15px] leading-relaxed";
+  return (
+    <Reveal>
+      <figure
+        data-reveal="0.1"
+        className="rounded-[24px] border border-border bg-surface-raised p-5 shadow-[0_24px_60px_-30px_rgba(6,15,33,0.35)] sm:p-6"
+      >
+        <figcaption className="flex items-center gap-2 text-xs font-semibold text-text-muted">
+          <ChatIcon className="size-4 text-hero" /> Example conversation
+        </figcaption>
+        <ol className="mt-4 flex flex-col gap-3">
+          <li className="flex justify-end">
+            <p className={`${bubble} rounded-br-md bg-primary text-white`}>
+              When does my next money unlock?
+            </p>
+          </li>
+          <li className="flex">
+            <p
+              className={`${bubble} rounded-bl-md border border-border bg-surface`}
+            >
+              Your Rent budget pays you next: $300 on December 1. Two more parts
+              of $300 follow, the last on February 1.
+            </p>
+          </li>
+          <li className="flex justify-end">
+            <p className={`${bubble} rounded-br-md bg-primary text-white`}>
+              Why is Solana up today?
+            </p>
+          </li>
+          <li className="flex">
+            <span className="rounded-full bg-hero/10 px-3 py-1 text-xs font-semibold">
+              Checked True Markets market data
+            </span>
+          </li>
+          <li className="flex">
+            <p
+              className={`${bubble} rounded-bl-md border border-border bg-surface`}
+            >
+              SOL is up about 4% today, and True Markets&apos; news summary
+              points to busier trading across crypto. You hold 6.5 SOL; 4 of it
+              is locked in a goal until March.
+            </p>
+          </li>
+        </ol>
+      </figure>
+    </Reveal>
   );
 }
 

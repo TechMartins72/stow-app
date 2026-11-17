@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { googleConfig } from "@/app/_server/google-auth";
 import { readSession } from "@/app/_server/session";
 import Link from "next/link";
 import { ArrowRightIcon, PadlockMotif, StowMark } from "@/app/_components/icons";
@@ -56,10 +57,17 @@ export default function SignInPage() {
       {/* Form */}
       <main className="flex items-center justify-center bg-surface px-4 py-10 text-text sm:px-6 lg:rounded-l-[32px]">
         <div className="w-full max-w-sm rounded-[24px] bg-surface-raised p-6 shadow-[0_24px_60px_-30px_rgba(6,15,33,0.35)] sm:p-8">
-          <SignInForm practice={practice} />
+          <SignInForm practice={practice} google={googleConfig() !== null} />
           <Suspense fallback={null}>
             <SendHomeIfSignedIn />
           </Suspense>
+          <p className="mt-6 text-center text-xs text-text-muted">
+            By continuing you agree to how we handle your data in our{" "}
+            <Link href="/privacy" className="font-semibold underline hover:text-text">
+              privacy policy
+            </Link>
+            .
+          </p>
         </div>
       </main>
     </div>

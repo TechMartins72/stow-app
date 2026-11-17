@@ -10,6 +10,7 @@ import { getEngine } from "@/app/_server/engine";
 import { gatewayFailure } from "@/app/_server/gateway-failure";
 import { AdvisorSwitch } from "./advisor-switch";
 import { AdvisorView } from "./advisor-view";
+import { MarketContext } from "./market-context";
 import { LoadingBlock } from "@/app/_components/spinner";
 
 export const metadata: Metadata = { title: "Advisor · Stow" };
@@ -58,7 +59,24 @@ async function AdvisorContent() {
   return (
     <div className="space-y-8">
       <AdvisorSwitch enabled />
-      <AdvisorView profile={data.profile} suggestions={data.suggestions} />
+      <AdvisorView
+        profile={data.profile}
+        suggestions={data.suggestions}
+        context={Object.fromEntries(
+          data.suggestions.flatMap((s) =>
+            s.marketTicker
+              ? [
+                  [
+                    s.id,
+                    <Suspense key={s.id} fallback={null}>
+                      <MarketContext ticker={s.marketTicker} suggestion={{ id: s.id, title: s.title, why: s.why }} />
+                    </Suspense>,
+                  ],
+                ]
+              : [],
+          ),
+        )}
+      />
 
       <section aria-labelledby="rules-title" className="rounded-[20px] bg-surface-raised p-5 text-sm sm:p-6">
         <h2 id="rules-title" className="font-bold">

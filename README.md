@@ -58,11 +58,14 @@ demo account. Other commands: `npm test`, `npm run typecheck`, `npm run lint`,
    | `APP_URL` | the deployment's address, e.g. `https://your-app.vercel.app` |
    | `RESEND_API_KEY` | a Resend API key (**Sensitive**) |
    | `EMAIL_FROM` | a sender on a domain verified in Resend, e.g. `Stow <hello@yourdomain.com>` |
+   | `GOOGLE_CLIENT_ID` | optional: Google sign-in (see `.env.example`) |
+   | `GOOGLE_CLIENT_SECRET` | optional: Google sign-in (**Sensitive**) |
 
    Vercel has no key files, so `TM_API_KEY` / `SIGNER_KEY` hold the files' contents;
    `TM_KEY_FILE` / `SIGNER_KEY_FILE` are for running locally.
-5. **Email.** Sign-in is by emailed link. Resend's test sender only delivers to the
-   account owner, so verify a domain in Resend before anyone else signs in.
+5. **Sign-in.** "Continue with Google" works for anyone once the Google client is set up
+   (no domain needed). Emailed links need a domain verified in Resend: its test sender
+   only delivers to the account owner.
 6. **Deploy**, sign in, and test with small amounts first: deposit a few dollars of USDC,
    buy $1 of SOL, lock $1, try to withdraw locked money (it must be refused).
 

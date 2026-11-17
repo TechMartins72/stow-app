@@ -38,7 +38,16 @@ function parse(raw: string): string[] {
   }
 }
 
-export function AdvisorView({ profile, suggestions }: { profile: RiskProfile; suggestions: CheckedSuggestion[] }) {
+export function AdvisorView({
+  profile,
+  suggestions,
+  context = {},
+}: {
+  profile: RiskProfile;
+  suggestions: CheckedSuggestion[];
+  /** Server-rendered market-context lines, keyed by suggestion id. */
+  context?: Record<string, React.ReactNode>;
+}) {
   const toast = useToast();
   const raw = useSyncExternalStore(subscribe, readRaw, () => "[]");
   const [sessionDismissed, setSessionDismissed] = useState<string[]>([]);
@@ -123,6 +132,7 @@ export function AdvisorView({ profile, suggestions }: { profile: RiskProfile; su
                   <div className="min-w-0 flex-1">
                     <h3 className="num font-bold">{s.title}</h3>
                     <p className="mt-1 text-sm text-text-muted">{s.why}</p>
+                    {context[s.id] ?? null}
                     <p className="num mt-2 text-sm">{s.impact}</p>
                     {s.check ? (
                       <p className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${s.check.allowed ? "bg-positive/15 text-positive" : "bg-critical-bg text-critical"}`}>
