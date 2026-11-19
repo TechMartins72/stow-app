@@ -64,4 +64,5 @@ Docs index: https://docs.truemarkets.co/llms.txt - OpenAPI: https://docs.truemar
 - Orders: market buys use `qty_unit: "quote"` (USDC to spend); DeFi sells use `qty_unit: "base"`. An empty `order_id` means no order was created; `quote.issues` says why.
 - Stamps: sign each `payload` string exactly as returned (ECDSA P-256 SHA-256, DER hex), wrap `{publicKey, signature, scheme: "SIGNATURE_SCHEME_TK_API_P256"}`, base64url. Execute with `{signatures, auth_type: "api_key"}` in payload order.
 - Errors: branch on `code` (`quote_stale`, `insufficient_balance`, `already_submitted`), fall back to `type`; never on `message`. Show `request_id` only under "Details".
+- Withdrawal minimums: True Markets refuses transfers under $5 of SOL or USDT on Solana (`amount_below_minimum`, no limit in the reply). Known minimums live in `app/_lib/withdraw-minimum.ts`; add new ones there.
 - No webhooks: poll orders and transfers. Every live trade is real money; keep amounts small.

@@ -3,20 +3,42 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { dec, mul, toDecimalString } from "@/engine/decimal";
-import { chainFamily, checkAddress, networkLabel, shortAddress } from "@/app/_lib/address";
+import {
+  chainFamily,
+  checkAddress,
+  networkLabel,
+  shortAddress,
+} from "@/app/_lib/address";
 import { formatDate, formatQty, formatUsd } from "@/app/_lib/format";
 import { checkSendAmount } from "@/app/_lib/send-amount";
+import {
+  checkWithdrawMinimum,
+  withdrawMinimumNote,
+} from "@/app/_lib/withdraw-minimum";
 import type { Holding } from "@/app/_server/wallet";
 import { LockIcon } from "@/app/_components/icons";
 import { useToast } from "@/app/_components/toaster";
-import { previewWithdrawAction, withdrawAction, type PreviewResult, type SendResult } from "./actions";
+import {
+  previewWithdrawAction,
+  withdrawAction,
+  type PreviewResult,
+  type SendResult,
+} from "./actions";
 import { Busy } from "@/app/_components/spinner";
 
 type Stage = "form" | "review" | "done";
 
-export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]; initialAssetId?: string }) {
+export function WithdrawFlow({
+  holdings,
+  initialAssetId,
+}: {
+  holdings: Holding[];
+  initialAssetId?: string;
+}) {
   const sendable = holdings.filter((h) => chainFamily(h.chain));
-  const [assetId, setAssetId] = useState((sendable.find((h) => h.assetId === initialAssetId) ?? sendable[0]).assetId);
+  const [assetId, setAssetId] = useState(
+    (sendable.find((h) => h.assetId === initialAssetId) ?? sendable[0]).assetId,
+  );
   const [qty, setQty] = useState("");
   const [to, setTo] = useState("");
   const [touched, setTouched] = useState(false);
@@ -30,7 +52,10 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
   const h = sendable.find((x) => x.assetId === assetId)!;
   const family = chainFamily(h.chain)!;
   const network = networkLabel(h.chain);
-  const amountError = checkSendAmount(qty, h.available, h.decimals, h.symbol);
+  const amountError =
+    checkSendAmount(qty, h.available, h.decimals, h.symbol) ??
+    checkWithdrawMinimum({ ...h, qty: qty.trim() });
+  const minimumNote = withdrawMinimumNote(h);
   const addressError = checkAddress(family, to);
   const overFree = !amountError && dec(qty.trim()) > dec(h.accessible);
   const unit = (v: string) => `${formatQty(v, h.decimals)} ${h.symbol}`;
@@ -51,10 +76,29 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
       const r = await withdrawAction({ assetId, qty, to });
       setResult(r);
       setStage("done");
-      if (!r.ok) toast({ tone: "error", title: "Nothing was sent", body: r.message });
-      else if (r.outcome === "blocked") toast({ tone: "info", title: "Blocked by your locks", body: "The app didn't sign it. Your funds stayed put." });
-      else if (r.status === "failed") toast({ tone: "error", title: "Transfer failed", body: "The network rejected it; your funds stayed in your wallet." });
-      else toast({ tone: "success", title: r.status === "pending" ? `${unit(r.qty)} on its way` : `Sent ${unit(r.qty)}`, body: `To ${shortAddress(to)} on ${network}.` });
+      if (!r.ok)
+        toast({ tone: "error", title: "Nothing was sent", body: r.message });
+      else if (r.outcome === "blocked")
+        toast({
+          tone: "info",
+          title: "Blocked by your locks",
+          body: "The app didn't sign it. Your funds stayed put.",
+        });
+      else if (r.status === "failed")
+        toast({
+          tone: "error",
+          title: "Transfer failed",
+          body: "The network rejected it; your funds stayed in your wallet.",
+        });
+      else
+        toast({
+          tone: "success",
+          title:
+            r.status === "pending"
+              ? `${unit(r.qty)} on its way`
+              : `Sent ${unit(r.qty)}`,
+          body: `To ${shortAddress(to)} on ${network}.`,
+        });
     });
   }
 
@@ -67,21 +111,43 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
 
   // ---------- Done ----------
   if (stage === "done" && result) {
-    if (!result.ok) return <ErrorPanel message={result.message} requestId={result.requestId} detail={result.detail} onBack={() => reset()} />;
+    if (!result.ok)
+      return (
+        <ErrorPanel
+          message={result.message}
+          requestId={result.requestId}
+          detail={result.detail}
+          onBack={() => reset()}
+        />
+      );
     if (result.outcome === "blocked") {
-      return <BlockedPanel reasons={result.reasons} blockers={h.blockers} accessible={h.accessible} unit={unit} onSendFree={() => reset({ qty: h.accessible })} onBack={() => reset()} />;
+      return (
+        <BlockedPanel
+          reasons={result.reasons}
+          blockers={h.blockers}
+          accessible={h.accessible}
+          unit={unit}
+          onSendFree={() => reset({ qty: h.accessible })}
+          onBack={() => reset()}
+        />
+      );
     }
     const pending = result.status === "pending";
     const failed = result.status === "failed";
     return (
-      <section role="status" className="rounded-[24px] border border-border bg-surface-raised p-6 sm:p-8">
+      <section
+        role="status"
+        className="rounded-[24px] border border-border bg-surface-raised p-6 sm:p-8"
+      >
         <span
           className={`grid size-12 place-items-center rounded-full text-xl font-bold text-white ${failed ? "bg-critical" : pending ? "bg-warning" : "bg-positive"}`}
           aria-hidden
         >
           {failed ? "!" : pending ? "…" : "✓"}
         </span>
-        <h2 className="display mt-4 text-2xl">{failed ? "The transfer failed" : pending ? "On its way" : "Sent"}</h2>
+        <h2 className="display mt-4 text-2xl">
+          {failed ? "The transfer failed" : pending ? "On its way" : "Sent"}
+        </h2>
         <p className="mt-2 text-text-muted">
           {failed
             ? "The network rejected it, so your funds stayed in your wallet."
@@ -92,18 +158,31 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
         {!failed ? (
           <dl className="mt-5 space-y-2 rounded-2xl bg-surface p-4 text-sm">
             <Row label="Amount" value={unit(result.qty)} />
-            <Row label="Network fee" value={dec(result.fee || "0") > 0n ? unit(result.fee) : "None"} />
+            <Row
+              label="Network fee"
+              value={dec(result.fee || "0") > 0n ? unit(result.fee) : "None"}
+            />
             <Row label="To" value={shortAddress(to)} />
-            {result.txHash ? <Row label="Transaction" value={shortAddress(result.txHash)} /> : null}
+            {result.txHash ? (
+              <Row label="Transaction" value={shortAddress(result.txHash)} />
+            ) : null}
           </dl>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
           {result.explorerUrl ? (
-            <a href={result.explorerUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-border px-4 py-3 text-sm font-semibold">
+            <a
+              href={result.explorerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl border border-border px-4 py-3 text-sm font-semibold"
+            >
               View on explorer ↗
             </a>
           ) : null}
-          <Link href="/" className="rounded-xl bg-primary px-[22px] py-3 text-sm font-semibold text-white hover:bg-primary-hover">
+          <Link
+            href="/"
+            className="rounded-xl bg-primary px-[22px] py-3 text-sm font-semibold text-white hover:bg-primary-hover"
+          >
             Back to Home
           </Link>
         </div>
@@ -125,32 +204,59 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
         />
       );
     }
-    const usd = formatUsd(toDecimalString(mul(dec(qty.trim()), dec(h.priceUsd)), 6));
+    const usd = formatUsd(
+      toDecimalString(mul(dec(qty.trim()), dec(h.priceUsd)), 6),
+    );
     return (
       <section className="rounded-[24px] border border-border bg-surface-raised p-6 sm:p-8">
         <h2 className="display text-2xl">Check and send</h2>
         <div className="mt-5 rounded-2xl bg-hero p-5">
-          <p className="text-sm font-semibold text-frame">You&apos;re sending</p>
-          <p className="num display mt-1 text-[calc(32px*var(--fs))] leading-tight text-white">{unit(qty)}</p>
+          <p className="text-sm font-semibold text-frame">
+            You&apos;re sending
+          </p>
+          <p className="num display mt-1 text-[calc(32px*var(--fs))] leading-tight text-white">
+            {unit(qty)}
+          </p>
           <p className="num text-sm font-semibold text-frame">About {usd}</p>
         </div>
         <dl className="mt-4 space-y-2 rounded-2xl bg-surface p-4 text-sm">
-          <Row label="To" value={<span className="break-all font-mono text-xs">{to.trim()}</span>} />
+          <Row
+            label="To"
+            value={
+              <span className="break-all font-mono text-xs">{to.trim()}</span>
+            }
+          />
           <Row label="Network" value={network} />
-          <Row label="Network fee" value="Shown after sending; usually a few cents" />
+          <Row
+            label="Network fee"
+            value="Shown after sending; usually a few cents"
+          />
         </dl>
         <div className="mt-4 rounded-2xl bg-critical-bg p-4 text-sm">
-          <p className="font-bold text-critical">Transfers can&apos;t be undone</p>
+          <p className="font-bold text-critical">
+            Transfers can&apos;t be undone
+          </p>
           <p className="mt-1 text-text">
-            Make sure this is a {network} address that accepts {h.symbol}. Sending to the wrong network or address loses the funds.
+            Make sure this is a {network} address that accepts {h.symbol}.
+            Sending to the wrong network or address loses the funds.
           </p>
         </div>
         <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm font-semibold">
-          <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5 size-5 accent-[var(--accent-primary)]" />
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.target.checked)}
+            className="mt-0.5 size-5 accent-[var(--accent-primary)]"
+          />
           I&apos;ve checked the address and network.
         </label>
         <div className="mt-6 flex gap-3">
-          <button type="button" onClick={() => reset()} disabled={busy} className="rounded-xl border border-border px-[22px] py-[15px] font-semibold disabled:opacity-60">
+          <button
+            type="button"
+            onClick={() => reset()}
+            disabled={busy}
+            className="rounded-xl border border-border px-[22px] py-[15px] font-semibold disabled:opacity-60"
+          >
             Back
           </button>
           <button
@@ -177,7 +283,9 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
       className="space-y-6"
     >
       <fieldset>
-        <legend className="mb-3 text-sm font-semibold">What do you want to send?</legend>
+        <legend className="mb-3 text-sm font-semibold">
+          What do you want to send?
+        </legend>
         <div className="space-y-2">
           {sendable.map((x) => {
             const lockedHere = dec(x.locked) > 0n;
@@ -185,7 +293,9 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
               <label
                 key={x.assetId}
                 className={`flex cursor-pointer items-center gap-3 rounded-2xl border bg-surface-raised p-4 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary ${
-                  x.assetId === assetId ? "border-primary ring-1 ring-primary" : "border-border"
+                  x.assetId === assetId
+                    ? "border-primary ring-1 ring-primary"
+                    : "border-border"
                 }`}
               >
                 <input
@@ -200,19 +310,29 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
                     setTouched(false);
                   }}
                 />
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-frame text-xs font-extrabold text-white" aria-hidden>
+                <span
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-frame text-xs font-extrabold text-white"
+                  aria-hidden
+                >
                   {x.symbol.slice(0, 4)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">
-                    {x.name} <span className="text-xs font-semibold text-text-muted">· {networkLabel(x.chain)}</span>
+                    {x.name}{" "}
+                    <span className="text-xs font-semibold text-text-muted">
+                      · {networkLabel(x.chain)}
+                    </span>
                   </span>
                   <span className="num block text-sm text-text-muted">
                     {formatQty(x.accessible, x.decimals)} {x.symbol} free
-                    {lockedHere ? ` · ${formatQty(x.locked, x.decimals)} locked` : ""}
+                    {lockedHere
+                      ? ` · ${formatQty(x.locked, x.decimals)} locked`
+                      : ""}
                   </span>
                 </span>
-                {lockedHere ? <LockIcon className="size-4 text-locked" /> : null}
+                {lockedHere ? (
+                  <LockIcon className="size-4 text-locked" />
+                ) : null}
               </label>
             );
           })}
@@ -249,13 +369,23 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
             Max free
           </button>
         </div>
-        <p id="qty-help" aria-live="polite" className={`mt-2 text-sm ${touched && amountError ? "text-critical" : overFree ? "text-warning" : "text-text-muted"}`}>
+        <p
+          id="qty-help"
+          aria-live="polite"
+          className={`mt-2 text-sm ${touched && amountError ? "text-critical" : overFree ? "text-warning" : "text-text-muted"}`}
+        >
           {touched && amountError
             ? amountError
             : overFree
               ? `${unit(h.locked)} of this is locked. Only ${unit(h.accessible)} is free to send.`
               : `${unit(h.accessible)} free to send.`}
         </p>
+        {minimumNote ? (
+          <p className="mt-2 rounded-xl bg-surface px-3 py-2 text-sm text-text-muted">
+            <span className="font-semibold text-text">{minimumNote}</span> True
+            Markets won&apos;t send less than this.
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -277,17 +407,28 @@ export function WithdrawFlow({ holdings, initialAssetId }: { holdings: Holding[]
             touched && addressError ? "border-critical" : "border-border"
           }`}
         />
-        <p id="to-help" aria-live="polite" className={`mt-2 text-sm ${touched && addressError ? "text-critical" : "text-text-muted"}`}>
-          {touched && addressError ? addressError : `Only send to a ${network} address that accepts ${h.symbol}.`}
+        <p
+          id="to-help"
+          aria-live="polite"
+          className={`mt-2 text-sm ${touched && addressError ? "text-critical" : "text-text-muted"}`}
+        >
+          {touched && addressError
+            ? addressError
+            : `Only send to a ${network} address that accepts ${h.symbol}.`}
         </p>
       </div>
 
       {preview && !preview.ok ? (
-        <div role="alert" className="rounded-2xl border border-critical/30 bg-critical-bg p-4 text-sm">
+        <div
+          role="alert"
+          className="rounded-2xl border border-critical/30 bg-critical-bg p-4 text-sm"
+        >
           <p className="font-bold text-critical">{preview.message}</p>
           {preview.requestId || preview.detail ? (
             <details className="mt-1 text-text-muted">
-              <summary className="cursor-pointer font-semibold">Details</summary>
+              <summary className="cursor-pointer font-semibold">
+                Details
+              </summary>
               {preview.detail ? <p className="mt-1">{preview.detail}</p> : null}
               {preview.requestId ? (
                 <p className="mt-1">
@@ -327,13 +468,22 @@ function BlockedPanel({
 }) {
   const canSendFree = dec(accessible) > 0n;
   return (
-    <section role="alert" className="overflow-hidden rounded-[24px] border border-locked/30 bg-surface-raised">
+    <section
+      role="alert"
+      className="overflow-hidden rounded-[24px] border border-locked/30 bg-surface-raised"
+    >
       <div className="bg-locked p-6 text-white sm:p-8">
-        <span className="grid size-12 place-items-center rounded-full bg-white/15" aria-hidden>
+        <span
+          className="grid size-12 place-items-center rounded-full bg-white/15"
+          aria-hidden
+        >
           <LockIcon className="size-6" />
         </span>
         <h2 className="display mt-4 text-2xl">Blocked by your locks</h2>
-        <p className="mt-2 text-white/85">You asked the app to keep this money safe, so it won&apos;t sign this transfer. Nothing was sent.</p>
+        <p className="mt-2 text-white/85">
+          You asked the app to keep this money safe, so it won&apos;t sign this
+          transfer. Nothing was sent.
+        </p>
       </div>
       <div className="p-6 sm:p-8">
         <ul className="space-y-1 text-sm text-text-muted">
@@ -345,7 +495,10 @@ function BlockedPanel({
           <ul className="mt-4 divide-y divide-border rounded-2xl border border-border">
             {blockers.map((b) => (
               <li key={b.lockId}>
-                <Link href={`/vault/${b.lockId}`} className="flex items-center justify-between gap-3 p-4 hover:bg-surface">
+                <Link
+                  href={`/vault/${b.lockId}`}
+                  className="flex items-center justify-between gap-3 p-4 hover:bg-surface"
+                >
                   <span>
                     <span className="block font-bold">{b.goalName}</span>
                     <span className="text-sm text-text-muted">
@@ -354,18 +507,28 @@ function BlockedPanel({
                         : "Locked"}
                     </span>
                   </span>
-                  <span className="num text-sm font-bold">{unit(b.lockedAmount)}</span>
+                  <span className="num text-sm font-bold">
+                    {unit(b.lockedAmount)}
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" onClick={onBack} className="rounded-xl border border-border px-[22px] py-[15px] font-semibold">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-xl border border-border px-[22px] py-[15px] font-semibold"
+          >
             Change amount
           </button>
           {canSendFree ? (
-            <button type="button" onClick={onSendFree} className="flex-1 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover">
+            <button
+              type="button"
+              onClick={onSendFree}
+              className="flex-1 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover"
+            >
               Send the free {unit(accessible)} instead
             </button>
           ) : null}
@@ -375,9 +538,22 @@ function BlockedPanel({
   );
 }
 
-function ErrorPanel({ message, requestId, detail, onBack }: { message: string; requestId?: string; detail?: string; onBack: () => void }) {
+function ErrorPanel({
+  message,
+  requestId,
+  detail,
+  onBack,
+}: {
+  message: string;
+  requestId?: string;
+  detail?: string;
+  onBack: () => void;
+}) {
   return (
-    <section role="alert" className="rounded-[24px] border border-critical/30 bg-critical-bg p-6 sm:p-8">
+    <section
+      role="alert"
+      className="rounded-[24px] border border-critical/30 bg-critical-bg p-6 sm:p-8"
+    >
       <h2 className="text-lg font-bold text-critical">{message}</h2>
       {requestId || detail ? (
         <details className="mt-2 text-sm text-text-muted">
@@ -390,7 +566,11 @@ function ErrorPanel({ message, requestId, detail, onBack }: { message: string; r
           ) : null}
         </details>
       ) : null}
-      <button type="button" onClick={onBack} className="mt-5 rounded-xl border border-border bg-surface-raised px-[22px] py-3 font-semibold">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-5 rounded-xl border border-border bg-surface-raised px-[22px] py-3 font-semibold"
+      >
         Back
       </button>
     </section>
