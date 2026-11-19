@@ -193,7 +193,12 @@ export default function WelcomePage() {
           <Reveal className="mx-auto max-w-6xl">
             <SectionIntro
               eyebrow="Two ways to stow"
-              title="A goal to save for. A budget that pays you."
+              title={
+                <>
+                  A goal to save for.
+                  <br /> A budget that pays you.
+                </>
+              }
             />
             <div className="mt-10 grid gap-4 md:grid-cols-2">
               <WayCard
@@ -472,7 +477,7 @@ function SectionIntro({
   eyebrowClass = "text-primary dark:text-hero",
 }: {
   eyebrow: string;
-  title: string;
+  title: React.ReactNode;
   body?: string;
   eyebrowClass?: string;
 }) {

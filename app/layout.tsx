@@ -23,7 +23,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${michroma.variable} h-full antialiased`}>
+    // data-scroll-behavior: Next turns smooth scrolling off while it changes pages, so
+    // only in-page links (#how, #faq…) glide; new pages still open at the top at once.
+    <html lang="en" data-scroll-behavior="smooth" className={`${jakarta.variable} ${michroma.variable} h-full antialiased`}>
       <body className="min-h-full">
         <ToastProvider>
           <ConnectionBanner />

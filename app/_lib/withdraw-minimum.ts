@@ -10,7 +10,7 @@ const MINIMUM_USD: Record<string, string> = {
   "solana:SOL": "5.00",
   "solana:USDT": "5.00",
 };
-j
+
 const SHOWN_PLACES = 4;
 
 export function withdrawMinimumUsd(

@@ -153,3 +153,11 @@ body {
     transform: scale(1);
   }
 }
+
+/* In-page links (the landing page's #how, #faq…) glide instead of jumping, unless
+   the visitor asked for less motion. Next switches it off between pages (see layout.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
