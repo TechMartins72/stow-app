@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- Source for public/brand/stow-banner-1920x600.png. Laid out on a 1600×500 stage drawn at 120%.
+     Text stays in the upper-left and centre so the profile picture (bottom-left) never covers it.
+     The phone shows practice-account figures for illustration only. Render: see docs/brand/README.md -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Michroma&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        width: 1920px;
+        height: 600px;
+        overflow: hidden;
+        position: relative;
+        background:
+          radial-gradient(520px 380px at 77% 38%, rgba(0, 137, 255, 0.13), transparent 70%),
+          #060f21;
+        color: #f0f5fc;
+        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .stage { position: relative; width: 1600px; height: 500px; zoom: 1.2; }
+
+      /* Left: brand, tagline, one line of explanation */
+      .copy { position: absolute; left: 128px; top: 104px; width: 760px; }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand svg { width: 50px; height: 48px; display: block; }
+      .wordmark { font-family: "Michroma", sans-serif; font-size: 28px; letter-spacing: 0.06em; }
+      h1 {
+        margin: 34px 0 0;
+        font-size: 80px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+      }
+      h1 .accent { color: #0089ff; }
+      .sub { margin: 22px 0 0; font-size: 23px; line-height: 1.45; color: #9aa6b8; max-width: 620px; }
+      .sub b { color: #f0f5fc; font-weight: 600; }
+
+      /* Right: the app's Home screen, cropped by the banner's bottom edge */
+      .phone {
+        position: absolute;
+        left: 1080px;
+        top: 58px;
+        width: 318px;
+        height: 620px;
+        border-radius: 46px;
+        background: #0b1529;
+        border: 1.5px solid #22335a;
+        box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.7);
+        padding: 22px 18px;
+      }
+      .status { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #9aa6b8; padding: 0 8px; }
+      .hello { margin: 20px 4px 0; font-size: 12px; font-weight: 600; color: #9aa6b8; }
+      .title { margin: 2px 4px 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+      .card { margin-top: 14px; border-radius: 20px; background: #0089ff; padding: 16px; color: #fff; }
+      .pill { display: inline-block; border-radius: 999px; background: #060f21; color: #f0f5fc; font-size: 10px; font-weight: 700; padding: 4px 9px; }
+      .label { margin-top: 12px; font-size: 11px; font-weight: 600; color: #e6f2ff; }
+      .total { font-size: 33px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+      .bar { display: flex; height: 7px; border-radius: 999px; overflow: hidden; margin-top: 12px; background: #fff; }
+      .bar span { display: block; width: 51%; background: #0935d1; }
+      .legend { display: flex; justify-content: space-between; margin-top: 9px; font-size: 10px; color: #e6f2ff; }
+      .legend b { display: block; margin-top: 2px; font-size: 13px; color: #fff; }
+      .upcoming { margin-top: 12px; border-radius: 20px; background: #13203a; padding: 14px; }
+      .upcoming h2 { margin: 0 0 10px; font-size: 13px; font-weight: 700; }
+      .row { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+      .row + .row { border-top: 1px solid #1f2e4d; }
+      .date { width: 34px; border-radius: 8px; background: #1f2e4d; text-align: center; padding: 3px 0; line-height: 1.05; }
+      .date small { display: block; font-size: 8px; font-weight: 700; color: #9aa6b8; }
+      .date b { font-size: 13px; }
+      .what { flex: 1; font-size: 12px; font-weight: 700; }
+      .what small { display: block; font-size: 10px; font-weight: 500; color: #9aa6b8; }
+      .when { font-size: 10px; color: #9aa6b8; }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+    <div class="copy">
+      <div class="brand">
+        <svg viewBox="28 36 104 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="none" stroke-width="18">
+            <path d="M60.08 83.5 A23 23 0 0 1 72.13 50.39" stroke="#0089ff" />
+            <path d="M75.22 49.5 A23 23 0 0 1 99.92 60.5" stroke="#5cb3ff" />
+            <path d="M101.33 63.38 A23 23 0 0 1 61.88 86.16" stroke="#b8dcff" />
+          </g>
+          <path d="M32 78 Q80 96 128 78 L128 108 Q128 132 104 132 L56 132 Q32 132 32 108 Z" fill="#0935d1" />
+        </svg>
+        <span class="wordmark">STOW</span>
+      </div>
+      <h1>Save it. <span class="accent">Budget it.</span></h1>
+      <p class="sub">Savings goals that hold until their date, and budgets that pay you back on schedule. <b>Dollars, crypto and stocks.</b></p>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+      <p class="hello">Welcome back</p>
+      <p class="title">Your savings &amp; budgets</p>
+      <div class="card">
+        <span class="pill">51% saved or budgeted</span>
+        <div class="label">Total balance</div>
+        <div class="total">$3,529.00</div>
+        <div class="bar"><span></span></div>
+        <div class="legend">
+          <div>Saved &amp; budgeted<b>$1,800.00</b></div>
+          <div style="text-align: right">Free to spend<b>$1,729.00</b></div>
+        </div>
+      </div>
+      <div class="upcoming">
+        <h2>Coming up</h2>
+        <div class="row">
+          <div class="date"><small>DEC</small><b>11</b></div>
+          <div class="what">4 SOL<small>New laptop</small></div>
+          <div class="when">in 24 days</div>
+        </div>
+        <div class="row">
+          <div class="date"><small>APR</small><b>8</b></div>
+          <div class="what">1,200 USDC<small>Rent for 2027</small></div>
+          <div class="when">in 142 days</div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </body>
+</html>

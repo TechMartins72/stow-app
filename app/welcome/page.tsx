@@ -13,6 +13,7 @@ import { BudgetScene } from "./_components/budget-scene";
 import { GuardScene } from "./_components/guard-scene";
 import { HeroScene } from "./_components/hero-scene";
 import { ActivityScene, AssetStrip, Reveal } from "./_components/reveals";
+import { Roadmap } from "./_components/roadmap";
 import { SavingsScene } from "./_components/savings-scene";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ const NAV = [
   { href: "#budgets", label: "Budgets" },
   { href: "#safety", label: "How it says no" },
   { href: "#ask", label: "Ask Stow" },
+  { href: "#roadmap", label: "Roadmap" },
   { href: "#faq", label: "Questions" },
 ];
 
@@ -89,7 +91,7 @@ export default function WelcomePage() {
             />
             <span className="wordmark text-[calc(16px*var(--fs))]">Stow</span>
           </Link>
-          <ul className="ml-auto hidden items-center gap-6 text-sm font-semibold text-frame-muted md:flex">
+          <ul className="ml-auto hidden items-center gap-6 text-sm font-semibold whitespace-nowrap text-frame-muted lg:flex">
             {NAV.map((n) => (
               <li key={n.href}>
                 <a href={n.href} className="hover:text-frame-text">
@@ -102,7 +104,7 @@ export default function WelcomePage() {
             href={APP}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover md:ml-0"
+            className="ml-auto rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover lg:ml-0"
           >
             Open Stow
           </Link>
@@ -357,6 +359,25 @@ export default function WelcomePage() {
               />
             </Reveal>
             <ActivityScene />
+          </div>
+        </section>
+
+        {/* Roadmap */}
+        <section
+          id="roadmap"
+          className="scroll-mt-16 border-t border-border px-6 py-20 lg:py-28"
+        >
+          <div className="mx-auto max-w-6xl">
+            <Reveal>
+              <SectionIntro
+                eyebrow="Where Stow is going"
+                title="Built to keep your promises. Here's what's next."
+                body="What works today, what we're building now, and where we're heading. No dates: we'd rather ship it than promise it."
+              />
+            </Reveal>
+            <div className="mt-12">
+              <Roadmap />
+            </div>
           </div>
         </section>
 

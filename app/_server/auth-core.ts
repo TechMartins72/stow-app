@@ -13,20 +13,42 @@ export interface SessionUser {
   userId: string;
   email: string;
   gatewayUserId: string | null;
+  /** When this browser's session started: for "sign in again" checks before risky steps. */
+  signedInAt: Date;
 }
 
 export interface AuthStore {
   countLoginTokensSince(email: string, since: Date): Promise<number>;
-  insertLoginToken(row: { tokenHash: string; email: string; createdAt: Date; expiresAt: Date }): Promise<void>;
+  insertLoginToken(row: {
+    tokenHash: string;
+    email: string;
+    createdAt: Date;
+    expiresAt: Date;
+  }): Promise<void>;
   /** Marks the token used and returns its email, only if unused and unexpired. Must be atomic. */
-  consumeLoginToken(tokenHash: string, now: Date): Promise<{ email: string } | null>;
+  consumeLoginToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<{ email: string } | null>;
   upsertUser(email: string): Promise<{ id: string }>;
-  insertSession(row: { tokenHash: string; userId: string; expiresAt: Date }): Promise<void>;
+  insertSession(row: {
+    tokenHash: string;
+    userId: string;
+    createdAt: Date;
+    expiresAt: Date;
+  }): Promise<void>;
   findSession(tokenHash: string, now: Date): Promise<SessionUser | null>;
   deleteSession(tokenHash: string): Promise<void>;
+  /**
+   * Deletes the user and everything Stow keeps about them: every session (all browsers
+   * signed out), sign-in links for their email, plans, limits and the action log.
+   * Callers check first that no money is stranded (app/_lib/account-deletion.ts).
+   */
+  deleteUser(userId: string, email: string): Promise<void>;
 }
 
-export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+export const hashToken = (token: string) =>
+  createHash("sha256").update(token).digest("hex");
 const newToken = () => randomBytes(32).toString("base64url");
 
 /** Lowercased, trimmed address, or null when it can't be one. */
@@ -40,14 +62,26 @@ export async function requestLoginLink(
   store: AuthStore,
   rawEmail: string,
   now: Date,
-): Promise<{ ok: true; email: string; token: string } | { ok: false; reason: "invalid_email" | "rate_limited" }> {
+): Promise<
+  | { ok: true; email: string; token: string }
+  | { ok: false; reason: "invalid_email" | "rate_limited" }
+> {
   const email = normaliseEmail(rawEmail);
   if (!email) return { ok: false, reason: "invalid_email" };
-  const recent = await store.countLoginTokensSince(email, new Date(now.getTime() - RATE_WINDOW_MS));
-  if (recent >= MAX_LINKS_PER_WINDOW) return { ok: false, reason: "rate_limited" };
+  const recent = await store.countLoginTokensSince(
+    email,
+    new Date(now.getTime() - RATE_WINDOW_MS),
+  );
+  if (recent >= MAX_LINKS_PER_WINDOW)
+    return { ok: false, reason: "rate_limited" };
 
   const token = newToken();
-  await store.insertLoginToken({ tokenHash: hashToken(token), email, createdAt: now, expiresAt: new Date(now.getTime() + LINK_TTL_MS) });
+  await store.insertLoginToken({
+    tokenHash: hashToken(token),
+    email,
+    createdAt: now,
+    expiresAt: new Date(now.getTime() + LINK_TTL_MS),
+  });
   return { ok: true, email, token };
 }
 
@@ -60,16 +94,33 @@ export async function signInWithToken(
   const used = await store.consumeLoginToken(hashToken(token), now);
   if (!used) return { ok: false };
   const user = await store.upsertUser(used.email);
-  return { ok: true, userId: user.id, sessionToken: await startSession(store, user.id, now) };
+  return {
+    ok: true,
+    userId: user.id,
+    sessionToken: await startSession(store, user.id, now),
+  };
 }
 
-export async function startSession(store: AuthStore, userId: string, now: Date): Promise<string> {
+export async function startSession(
+  store: AuthStore,
+  userId: string,
+  now: Date,
+): Promise<string> {
   const sessionToken = newToken();
-  await store.insertSession({ tokenHash: hashToken(sessionToken), userId, expiresAt: new Date(now.getTime() + SESSION_TTL_MS) });
+  await store.insertSession({
+    tokenHash: hashToken(sessionToken),
+    userId,
+    createdAt: now,
+    expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
+  });
   return sessionToken;
 }
 
-export function sessionUser(store: AuthStore, sessionToken: string, now: Date): Promise<SessionUser | null> {
+export function sessionUser(
+  store: AuthStore,
+  sessionToken: string,
+  now: Date,
+): Promise<SessionUser | null> {
   return store.findSession(hashToken(sessionToken), now);
 }
 
@@ -79,36 +130,80 @@ export function signOut(store: AuthStore, sessionToken: string): Promise<void> {
 
 /** In-memory AuthStore for tests and for running without a database. */
 export class MemoryAuthStore implements AuthStore {
-  private tokens: { tokenHash: string; email: string; createdAt: Date; expiresAt: Date; usedAt?: Date }[] = [];
-  private users: { id: string; email: string; gatewayUserId: string | null }[] = [];
-  private sessions: { tokenHash: string; userId: string; expiresAt: Date }[] = [];
+  private tokens: {
+    tokenHash: string;
+    email: string;
+    createdAt: Date;
+    expiresAt: Date;
+    usedAt?: Date;
+  }[] = [];
+  private users: { id: string; email: string; gatewayUserId: string | null }[] =
+    [];
+  private sessions: {
+    tokenHash: string;
+    userId: string;
+    createdAt: Date;
+    expiresAt: Date;
+  }[] = [];
 
   async countLoginTokensSince(email: string, since: Date) {
-    return this.tokens.filter((t) => t.email === email && t.createdAt >= since).length;
+    return this.tokens.filter((t) => t.email === email && t.createdAt >= since)
+      .length;
   }
-  async insertLoginToken(row: { tokenHash: string; email: string; createdAt: Date; expiresAt: Date }) {
+  async insertLoginToken(row: {
+    tokenHash: string;
+    email: string;
+    createdAt: Date;
+    expiresAt: Date;
+  }) {
     this.tokens.push({ ...row });
   }
   async consumeLoginToken(tokenHash: string, now: Date) {
-    const t = this.tokens.find((x) => x.tokenHash === tokenHash && !x.usedAt && x.expiresAt > now);
+    const t = this.tokens.find(
+      (x) => x.tokenHash === tokenHash && !x.usedAt && x.expiresAt > now,
+    );
     if (!t) return null;
     t.usedAt = now;
     return { email: t.email };
   }
   async upsertUser(email: string) {
     let user = this.users.find((u) => u.email === email);
-    if (!user) this.users.push((user = { id: randomUUID(), email, gatewayUserId: null }));
+    if (!user)
+      this.users.push(
+        (user = { id: randomUUID(), email, gatewayUserId: null }),
+      );
     return { id: user.id };
   }
-  async insertSession(row: { tokenHash: string; userId: string; expiresAt: Date }) {
+  async insertSession(row: {
+    tokenHash: string;
+    userId: string;
+    createdAt: Date;
+    expiresAt: Date;
+  }) {
     this.sessions.push({ ...row });
   }
   async findSession(tokenHash: string, now: Date) {
-    const s = this.sessions.find((x) => x.tokenHash === tokenHash && x.expiresAt > now);
+    const s = this.sessions.find(
+      (x) => x.tokenHash === tokenHash && x.expiresAt > now,
+    );
     const user = s && this.users.find((u) => u.id === s.userId);
-    return user ? { userId: user.id, email: user.email, gatewayUserId: user.gatewayUserId } : null;
+    return user
+      ? {
+          userId: user.id,
+          email: user.email,
+          gatewayUserId: user.gatewayUserId,
+          signedInAt: s.createdAt,
+        }
+      : null;
   }
   async deleteSession(tokenHash: string) {
     this.sessions = this.sessions.filter((s) => s.tokenHash !== tokenHash);
+  }
+  // Practice mode only: plans live in the separate in-memory VaultStore and are left
+  // behind, unreachable, under the deleted id until the server restarts.
+  async deleteUser(userId: string, email: string) {
+    this.sessions = this.sessions.filter((s) => s.userId !== userId);
+    this.tokens = this.tokens.filter((t) => t.email !== email);
+    this.users = this.users.filter((u) => u.id !== userId);
   }
 }

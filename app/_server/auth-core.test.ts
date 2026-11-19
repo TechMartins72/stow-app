@@ -36,18 +36,26 @@ describe("magic links", () => {
     const first = await signInWithToken(store, link.token, later(60_000));
     expect(first.ok).toBe(true);
     if (!first.ok) return;
-    expect((await sessionUser(store, first.sessionToken, later(60_000)))?.email).toBe("sandra@example.com");
+    expect(
+      (await sessionUser(store, first.sessionToken, later(60_000)))?.email,
+    ).toBe("sandra@example.com");
 
     // The same link can't be used twice.
-    expect((await signInWithToken(store, link.token, later(120_000))).ok).toBe(false);
+    expect((await signInWithToken(store, link.token, later(120_000))).ok).toBe(
+      false,
+    );
   });
 
   it("refuses an expired or unknown link", async () => {
     const store = new MemoryAuthStore();
     const link = await requestLoginLink(store, "sandra@example.com", t0);
     if (!link.ok) throw new Error("expected a link");
-    expect((await signInWithToken(store, link.token, later(LINK_TTL_MS + 1))).ok).toBe(false);
-    expect((await signInWithToken(store, "not-a-real-token", t0)).ok).toBe(false);
+    expect(
+      (await signInWithToken(store, link.token, later(LINK_TTL_MS + 1))).ok,
+    ).toBe(false);
+    expect((await signInWithToken(store, "not-a-real-token", t0)).ok).toBe(
+      false,
+    );
   });
 
   it("returns the same user on later sign-ins", async () => {
@@ -66,16 +74,29 @@ describe("magic links", () => {
   it("limits how many links one address can request", async () => {
     const store = new MemoryAuthStore();
     for (let i = 0; i < MAX_LINKS_PER_WINDOW; i++) {
-      expect((await requestLoginLink(store, "sandra@example.com", later(i * 1000))).ok).toBe(true);
+      expect(
+        (await requestLoginLink(store, "sandra@example.com", later(i * 1000)))
+          .ok,
+      ).toBe(true);
     }
-    expect(await requestLoginLink(store, "sandra@example.com", later(10_000))).toEqual({ ok: false, reason: "rate_limited" });
+    expect(
+      await requestLoginLink(store, "sandra@example.com", later(10_000)),
+    ).toEqual({ ok: false, reason: "rate_limited" });
     // Other addresses are unaffected, and the window moves on.
-    expect((await requestLoginLink(store, "other@example.com", later(10_000))).ok).toBe(true);
-    expect((await requestLoginLink(store, "sandra@example.com", later(16 * 60_000))).ok).toBe(true);
+    expect(
+      (await requestLoginLink(store, "other@example.com", later(10_000))).ok,
+    ).toBe(true);
+    expect(
+      (await requestLoginLink(store, "sandra@example.com", later(16 * 60_000)))
+        .ok,
+    ).toBe(true);
   });
 
   it("rejects an invalid address", async () => {
-    expect(await requestLoginLink(new MemoryAuthStore(), "nope", t0)).toEqual({ ok: false, reason: "invalid_email" });
+    expect(await requestLoginLink(new MemoryAuthStore(), "nope", t0)).toEqual({
+      ok: false,
+      reason: "invalid_email",
+    });
   });
 
   it("never stores the raw tokens", async () => {
@@ -102,8 +123,12 @@ describe("sessions", () => {
   it("expires after the session lifetime", async () => {
     const store = new MemoryAuthStore();
     const token = await signedIn(store);
-    expect(await sessionUser(store, token, later(SESSION_TTL_MS - 1))).not.toBeNull();
-    expect(await sessionUser(store, token, later(SESSION_TTL_MS + 1))).toBeNull();
+    expect(
+      await sessionUser(store, token, later(SESSION_TTL_MS - 1)),
+    ).not.toBeNull();
+    expect(
+      await sessionUser(store, token, later(SESSION_TTL_MS + 1)),
+    ).toBeNull();
   });
 
   it("ends on sign-out", async () => {
@@ -111,5 +136,40 @@ describe("sessions", () => {
     const token = await signedIn(store);
     await signOut(store, token);
     expect(await sessionUser(store, token, t0)).toBeNull();
+  });
+
+  it("knows when this browser signed in (for 'sign in again' checks)", async () => {
+    const store = new MemoryAuthStore();
+    const token = await signedIn(store);
+    expect(
+      (await sessionUser(store, token, later(60_000)))?.signedInAt,
+    ).toEqual(t0);
+  });
+});
+
+describe("deleting an account", () => {
+  it("signs out every browser, and the next sign-in is a brand-new account", async () => {
+    const store = new MemoryAuthStore();
+    const sessions: string[] = [];
+    let userId = "";
+    for (let i = 0; i < 2; i++) {
+      const link = await requestLoginLink(store, "sandra@example.com", t0);
+      if (!link.ok) throw new Error("expected a link");
+      const res = await signInWithToken(store, link.token, t0);
+      if (!res.ok) throw new Error("expected sign-in");
+      sessions.push(res.sessionToken);
+      userId = res.userId;
+    }
+    const unused = await requestLoginLink(store, "sandra@example.com", t0);
+    if (!unused.ok) throw new Error("expected a link");
+
+    await store.deleteUser(userId, "sandra@example.com");
+
+    for (const s of sessions)
+      expect(await sessionUser(store, s, t0)).toBeNull();
+    // A sign-in link sent before deletion no longer works.
+    expect((await signInWithToken(store, unused.token, t0)).ok).toBe(false);
+    const again = await store.upsertUser("sandra@example.com");
+    expect(again.id).not.toBe(userId);
   });
 });

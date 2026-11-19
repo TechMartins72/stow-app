@@ -2,7 +2,11 @@
 
 type IconProps = { className?: string; title?: string };
 
-function Svg({ className, title, children }: IconProps & { children: React.ReactNode }) {
+function Svg({
+  className,
+  title,
+  children,
+}: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -130,7 +134,10 @@ export function StowMark({ className }: { className?: string }) {
         <path d="M75.22 49.5 A23 23 0 0 1 99.92 60.5" stroke="#5cb3ff" />
         <path d="M101.33 63.38 A23 23 0 0 1 61.88 86.16" stroke="#b8dcff" />
       </g>
-      <path d="M32 78 Q80 96 128 78 L128 108 Q128 132 104 132 L56 132 Q32 132 32 108 Z" fill="#0935d1" />
+      <path
+        d="M32 78 Q80 96 128 78 L128 108 Q128 132 104 132 L56 132 Q32 132 32 108 Z"
+        fill="#0935d1"
+      />
     </svg>
   );
 }
@@ -138,7 +145,13 @@ export function StowMark({ className }: { className?: string }) {
 /** Large faint padlock-and-ring outline used inside the hero card and empty states. */
 export function PadlockMotif({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 200 200" className={className} aria-hidden fill="none" stroke="currentColor">
+    <svg
+      viewBox="0 0 200 200"
+      className={className}
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+    >
       <circle cx="100" cy="100" r="92" strokeWidth="10" />
       <circle cx="100" cy="100" r="70" strokeWidth="4" strokeDasharray="6 10" />
       <rect x="62" y="88" width="76" height="62" rx="14" strokeWidth="10" />
@@ -147,3 +160,23 @@ export function PadlockMotif({ className }: { className?: string }) {
     </svg>
   );
 }
+export const UserIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </Svg>
+);
+export const SignOutIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+    <path d="M10 8l-4 4 4 4" />
+    <path d="M6 12h10" />
+  </Svg>
+);
+export const TrashIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 7h16" />
+    <path d="M9 7V4h6v3" />
+    <path d="M6 7l1 13h10l1-13" />
+  </Svg>
+);

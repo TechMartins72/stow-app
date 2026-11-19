@@ -11,7 +11,12 @@ import { startGoogleSignIn } from "@/app/_server/google-auth";
 import PrivacyPage from "./page";
 
 const render = () => renderToStaticMarkup(createElement(PrivacyPage));
-const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&apos;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+const text = (html: string) =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#x27;|&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ");
 
 /** The text of the section with this id. */
 function section(html: string, id: string): string {
@@ -26,7 +31,12 @@ afterEach(() => vi.unstubAllEnvs());
 describe("privacy policy: what Google checks", () => {
   it("is public: the sign-in check never covers it (Google's reviewers aren't signed in)", () => {
     const covers = (path: string) =>
-      proxyConfig.matcher.some((m) => m === path || (m.endsWith("/:path*") && path.startsWith(m.slice(0, -"/:path*".length))));
+      proxyConfig.matcher.some(
+        (m) =>
+          m === path ||
+          (m.endsWith("/:path*") &&
+            path.startsWith(m.slice(0, -"/:path*".length))),
+      );
     expect(covers("/privacy")).toBe(false);
     expect(covers("/welcome")).toBe(false);
   });
@@ -53,14 +63,23 @@ describe("privacy policy: what Google checks", () => {
     expect(google).toMatch(/not sell/i);
     expect(google).toMatch(/advertis/i);
     expect(google).toMatch(/Limited Use/);
-    expect(html).toContain('href="https://developers.google.com/terms/api-services-user-data-policy"');
+    expect(html).toContain(
+      'href="https://developers.google.com/terms/api-services-user-data-policy"',
+    );
   });
 
   it("tells people how to have their data deleted, with the contact address when one is set", () => {
     vi.stubEnv("CONTACT_EMAIL", "privacy@stow.example");
     expect(render()).toContain('href="mailto:privacy@stow.example"');
     vi.stubEnv("CONTACT_EMAIL", "");
-    expect(text(render())).toMatch(/To have it deleted, contact us/);
+    expect(text(render())).toMatch(/to have it deleted, contact us/);
+  });
+
+  it("says people can delete their account themselves, from the app", () => {
+    const deleting = section(render(), "deleting");
+    expect(deleting).toMatch(/delete your account yourself/i);
+    expect(deleting).toMatch(/profile menu/);
+    expect(deleting).toMatch(/Delete account/);
   });
 });
 
@@ -68,8 +87,14 @@ describe("privacy policy: true to the code", () => {
   it("asks Google only for what the policy says: the email address, nothing else", () => {
     // If this fails, someone widened the Google scopes: update the policy (and check
     // whether Google now needs a review) before changing this test.
-    const { url } = startGoogleSignIn({ clientId: "id", clientSecret: "secret" }, "https://stow.example/auth/google/callback");
-    expect(new URL(url).searchParams.get("scope")?.split(" ").sort()).toEqual(["email", "openid"]);
+    const { url } = startGoogleSignIn(
+      { clientId: "id", clientSecret: "secret" },
+      "https://stow.example/auth/google/callback",
+    );
+    expect(new URL(url).searchParams.get("scope")?.split(" ").sort()).toEqual([
+      "email",
+      "openid",
+    ]);
     const google = section(render(), "google-user-data");
     expect(google).toMatch(/email address only/i);
     expect(google).toMatch(/not your name, photo/i);
