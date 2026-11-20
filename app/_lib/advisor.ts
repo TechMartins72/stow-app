@@ -6,7 +6,7 @@
 
 import { dec, div, min, mul, sum, toDecimalString, ZERO } from "@/engine/decimal";
 import { formatDate, formatQty, formatUsd } from "./format";
-import { minOrderUsd } from "./trade-policy";
+import { MIN_ORDER_USD } from "./trade-policy";
 
 export type RiskProfile = "careful" | "balanced" | "growth";
 
@@ -90,7 +90,7 @@ export function suggest(input: {
       const excessUsd = volatileUsd - cap;
       const qty = truncate(min(dec(biggest.free), div(excessUsd, dec(biggest.priceUsd))), Math.min(biggest.decimals, 6));
       const proceeds = mul(qty, dec(biggest.priceUsd));
-      if (proceeds >= dec(minOrderUsd(biggest))) {
+      if (proceeds >= dec(MIN_ORDER_USD)) {
         const after = pct(volatileUsd - proceeds, total);
         out.push({
           id: `reduce-risk:${biggest.assetId}:${profile}`,

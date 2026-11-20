@@ -9,7 +9,6 @@ import {
   checkBuyAmount,
   checkSellQty,
   minAccepted,
-  minOrderUsd,
 } from "@/app/_lib/trade-policy";
 import { describeOrderRefusal } from "@/app/_lib/order-refusal";
 import { getCurrentUser } from "@/app/_server/current-user";
@@ -99,11 +98,7 @@ export async function quoteBuyAction(input: {
         message: `There's nothing to pay with on ${found.asset.chain} yet.`,
       };
     const amount = p.data.amount.trim();
-    const problem = checkBuyAmount(
-      amount,
-      found.paying.free,
-      minOrderUsd(found.asset),
-    );
+    const problem = checkBuyAmount(amount, found.paying.free);
     if (problem) return { ok: false, message: problem };
     const q = await engine.client.quote(user.gatewayUserId, {
       asset_id: found.asset.assetId,
@@ -153,7 +148,6 @@ export async function quoteSellAction(input: {
       asset.decimals,
       asset.priceUsd!,
       asset.ticker,
-      minOrderUsd(asset),
     );
     if (problem) return { ok: false, message: problem };
     const q = await engine.client.quote(user.gatewayUserId, {
@@ -210,11 +204,7 @@ export async function buyAction(
       };
     if (!found?.paying || found.asset.tradability === "sell_only")
       return { ok: false, message: "That asset can't be bought right now." };
-    const problem = checkBuyAmount(
-      amount.trim(),
-      found.paying.free,
-      minOrderUsd(found.asset),
-    );
+    const problem = checkBuyAmount(amount.trim(), found.paying.free);
     if (problem) return { ok: false, message: problem };
 
     const outcome = await engine.guard.placeMarketOrder(user, {

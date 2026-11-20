@@ -10,7 +10,7 @@ import { LOCK_PRESETS, unlockFromPreset } from "@/app/_lib/lock-policy";
 import {
   checkBuyAmount,
   checkSellQty,
-  minOrderUsd,
+  MIN_ORDER_USD,
   QUOTE_TTL_MS,
 } from "@/app/_lib/trade-policy";
 import type { MarketAsset, PayingWith } from "@/app/_server/market";
@@ -85,8 +85,8 @@ export function TradePanel({
   }, [quote]);
 
   const freeUsdc = paying?.free ?? "0";
-  const minUsd = minOrderUsd(asset);
-  const buyError = checkBuyAmount(amount, freeUsdc, minUsd);
+  const minUsd = MIN_ORDER_USD;
+  const buyError = checkBuyAmount(amount, freeUsdc);
   const sellError = asset.priceUsd
     ? checkSellQty(
         qty,
@@ -94,7 +94,6 @@ export function TradePanel({
         asset.decimals,
         asset.priceUsd,
         asset.ticker,
-        minUsd,
       )
     : "No price right now.";
   const canSell = dec(asset.free) > 0n;
