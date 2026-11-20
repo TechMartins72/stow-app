@@ -22,6 +22,15 @@ describe("suggest", () => {
     expect(s.impact).toMatch(/75% → 50/);
   });
 
+  it("doesn't suggest selling less than a stock on Base's $5 minimum order", () => {
+    // $4.40 of AAPL free on Base, all of it swinging: under True Markets' $5 minimum there.
+    const tiny = { ...aapl, priceUsd: "4.4" };
+    expect(suggest({ holdings: [tiny], stocks: [], upcoming: [], profile: "careful", now })).toEqual([]);
+    // The same $4.40 of SOL is over the $1 minimum, so it's suggested.
+    const solTiny = sol("0.0293");
+    expect(suggest({ holdings: [solTiny], stocks: [], upcoming: [], profile: "careful", now })[0]?.action.kind).toBe("sell");
+  });
+
   it("only sells what isn't locked", () => {
     const [s] = suggest({ holdings: [usdc("0", "500"), sol("10", "1")], stocks: [], upcoming: [], profile: "balanced", now });
     expect(s.action).toEqual({ kind: "sell", assetId: "sol", qty: "1" });

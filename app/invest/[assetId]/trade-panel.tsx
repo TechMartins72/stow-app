@@ -7,11 +7,24 @@ import { dec } from "@/engine/decimal";
 import { networkLabel } from "@/app/_lib/address";
 import { formatDate, formatQty, formatUsd } from "@/app/_lib/format";
 import { LOCK_PRESETS, unlockFromPreset } from "@/app/_lib/lock-policy";
-import { checkBuyAmount, checkSellQty, MIN_ORDER_USD, QUOTE_TTL_MS } from "@/app/_lib/trade-policy";
+import {
+  checkBuyAmount,
+  checkSellQty,
+  minOrderUsd,
+  QUOTE_TTL_MS,
+} from "@/app/_lib/trade-policy";
 import type { MarketAsset, PayingWith } from "@/app/_server/market";
 import { LockIcon } from "@/app/_components/icons";
 import { useToast } from "@/app/_components/toaster";
-import { buyAction, quoteBuyAction, quoteSellAction, sellAction, type BuyQuote, type SellQuote, type TradeResult } from "../actions";
+import {
+  buyAction,
+  quoteBuyAction,
+  quoteSellAction,
+  sellAction,
+  type BuyQuote,
+  type SellQuote,
+  type TradeResult,
+} from "../actions";
 import { Busy } from "@/app/_components/spinner";
 
 type Side = "buy" | "sell";
@@ -19,7 +32,13 @@ const QUICK = ["5", "25", "100"];
 /** Renewals of an expired quote in a row before the panel waits for a tap. */
 const MAX_AUTO_RENEWALS = 3;
 
-export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: PayingWith | null }) {
+export function TradePanel({
+  asset,
+  paying,
+}: {
+  asset: MarketAsset;
+  paying: PayingWith | null;
+}) {
   const router = useRouter();
   const toast = useToast();
   const buyable = asset.tradability === "buy_sell";
@@ -36,7 +55,9 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
 
   const quote = side === "buy" ? buyQuote : sellQuote;
   const quotedAt = quote?.ok ? quote.quotedAt : 0;
-  const secondsLeft = quote?.ok ? Math.max(0, Math.ceil((quotedAt + QUOTE_TTL_MS - now) / 1000)) : 0;
+  const secondsLeft = quote?.ok
+    ? Math.max(0, Math.ceil((quotedAt + QUOTE_TTL_MS - now) / 1000))
+    : 0;
   const expired = quote?.ok === true && secondsLeft === 0;
 
   // Expired quotes renew themselves ("Getting a new quote…"), a few times in a row at most,
@@ -64,8 +85,18 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
   }, [quote]);
 
   const freeUsdc = paying?.free ?? "0";
-  const buyError = checkBuyAmount(amount, freeUsdc);
-  const sellError = asset.priceUsd ? checkSellQty(qty, asset.free, asset.decimals, asset.priceUsd, asset.ticker) : "No price right now.";
+  const minUsd = minOrderUsd(asset);
+  const buyError = checkBuyAmount(amount, freeUsdc, minUsd);
+  const sellError = asset.priceUsd
+    ? checkSellQty(
+        qty,
+        asset.free,
+        asset.decimals,
+        asset.priceUsd,
+        asset.ticker,
+        minUsd,
+      )
+    : "No price right now.";
   const canSell = dec(asset.free) > 0n;
   const cash = paying?.symbol ?? "USDC";
   const network = networkLabel(asset.chain);
@@ -81,7 +112,8 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
     if (!auto) autoRenewals.current = 0;
     setResult(null);
     start(async () => {
-      if (side === "buy") setBuyQuote(await quoteBuyAction({ assetId: asset.assetId, amount }));
+      if (side === "buy")
+        setBuyQuote(await quoteBuyAction({ assetId: asset.assetId, amount }));
       else setSellQuote(await quoteSellAction({ assetId: asset.assetId, qty }));
       setNow(Date.now());
     });
@@ -99,7 +131,11 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
               lock: lockIt ? { days: lockDays, goalName: "" } : null,
             })
           : sellQuote?.ok
-            ? await sellAction({ assetId: asset.assetId, qty, minQtyOut: sellQuote.minQtyOut })
+            ? await sellAction({
+                assetId: asset.assetId,
+                qty,
+                minQtyOut: sellQuote.minQtyOut,
+              })
             : null;
       if (!r) return;
       setResult(r);
@@ -111,11 +147,28 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
   }
 
   function announce(r: TradeResult) {
-    if (!r.ok) return toast({ tone: "error", title: side === "buy" ? "Nothing was bought" : "Nothing was sold", body: r.message });
-    if (r.outcome === "blocked") return toast({ tone: "info", title: "Not signed", body: r.reasons[0] });
-    if (r.status === "failed") return toast({ tone: "error", title: "The order failed", body: "Your funds stayed in your wallet." });
+    if (!r.ok)
+      return toast({
+        tone: "error",
+        title: side === "buy" ? "Nothing was bought" : "Nothing was sold",
+        body: r.message,
+      });
+    if (r.outcome === "blocked")
+      return toast({ tone: "info", title: "Not signed", body: r.reasons[0] });
+    if (r.status === "failed")
+      return toast({
+        tone: "error",
+        title: "The order failed",
+        body: "Your funds stayed in your wallet.",
+      });
     const what = `${formatQty(r.qty, asset.decimals)} ${asset.ticker}`;
-    if (side === "sell") return toast({ tone: "success", title: r.status === "pending" ? `Selling ${what}` : `Sold ${what}`, href: "/activity", linkLabel: "View activity" });
+    if (side === "sell")
+      return toast({
+        tone: "success",
+        title: r.status === "pending" ? `Selling ${what}` : `Sold ${what}`,
+        href: "/activity",
+        linkLabel: "View activity",
+      });
     if (r.lock) {
       return toast({
         tone: "success",
@@ -125,12 +178,22 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
         linkLabel: "View lock",
       });
     }
-    toast({ tone: "success", title: r.status === "pending" ? `Buying ${what}` : `Bought ${what}`, body: r.lockError, href: "/activity", linkLabel: "View activity" });
+    toast({
+      tone: "success",
+      title: r.status === "pending" ? `Buying ${what}` : `Bought ${what}`,
+      body: r.lockError,
+      href: "/activity",
+      linkLabel: "View activity",
+    });
   }
 
   return (
     <section className="overflow-hidden rounded-[24px] border border-border bg-surface-raised">
-      <div role="tablist" aria-label="Buy or sell" className="grid grid-cols-2 border-b border-border">
+      <div
+        role="tablist"
+        aria-label="Buy or sell"
+        className="grid grid-cols-2 border-b border-border"
+      >
         {(["buy", "sell"] as const).map((s) => (
           <button
             key={s}
@@ -138,7 +201,11 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
             type="button"
             aria-selected={side === s}
             disabled={s === "buy" && !buyable}
-            title={s === "buy" && !buyable ? "New buys are paused for this asset" : undefined}
+            title={
+              s === "buy" && !buyable
+                ? "New buys are paused for this asset"
+                : undefined
+            }
             onClick={() => switchSide(s)}
             className={`py-3.5 text-sm font-bold capitalize disabled:cursor-not-allowed disabled:opacity-40 ${side === s ? "border-b-2 border-primary text-primary" : "text-text-muted hover:text-text"}`}
           >
@@ -184,18 +251,32 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
               ))}
             </div>
             <p className="mt-3 text-sm text-text-muted">
-              Paid with {cash} on {network}: <span className="num font-semibold text-text">{formatUsd(freeUsdc)}</span> free.{" "}
-              {dec(freeUsdc) < dec(MIN_ORDER_USD) ? (
-                <Link href="/add-funds" className="font-semibold text-primary hover:underline">
+              Paid with {cash} on {network}:{" "}
+              <span className="num font-semibold text-text">
+                {formatUsd(freeUsdc)}
+              </span>{" "}
+              free. Minimum order {formatUsd(minUsd)}.{" "}
+              {dec(freeUsdc) < dec(minUsd) ? (
+                <Link
+                  href="/add-funds"
+                  className="font-semibold text-primary hover:underline"
+                >
                   Add {cash} on {network}
                 </Link>
               ) : null}
             </p>
-            {amount && buyError ? <p className="mt-2 text-sm text-critical">{buyError}</p> : null}
+            {amount && buyError ? (
+              <p className="mt-2 text-sm text-critical">{buyError}</p>
+            ) : null}
 
             <fieldset className="mt-5 rounded-2xl border border-border p-4">
               <label className="flex cursor-pointer items-start gap-3">
-                <input type="checkbox" checked={lockIt} onChange={(e) => setLockIt(e.target.checked)} className="mt-1 size-5 accent-[var(--accent-locked)]" />
+                <input
+                  type="checkbox"
+                  checked={lockIt}
+                  onChange={(e) => setLockIt(e.target.checked)}
+                  className="mt-1 size-5 accent-[var(--accent-locked)]"
+                />
                 <span>
                   <span className="flex items-center gap-1.5 font-bold">
                     <LockIcon className="size-4 text-locked" /> Buy and lock
@@ -208,7 +289,11 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                 </span>
               </label>
               {lockIt ? (
-                <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Lock for">
+                <div
+                  className="mt-3 flex flex-wrap gap-2"
+                  role="radiogroup"
+                  aria-label="Lock for"
+                >
                   {LOCK_PRESETS.map((p) => (
                     <button
                       key={p.days}
@@ -221,7 +306,10 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                       {p.label}
                     </button>
                   ))}
-                  <p className="w-full text-sm text-text-muted">Unlocks on {formatDate(unlockFromPreset(lockDays, new Date()))}.</p>
+                  <p className="w-full text-sm text-text-muted">
+                    Unlocks on{" "}
+                    {formatDate(unlockFromPreset(lockDays, new Date()))}.
+                  </p>
                 </div>
               ) : null}
             </fieldset>
@@ -258,19 +346,29 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
             </div>
             <p className="mt-3 text-sm text-text-muted">
               {formatQty(asset.free, asset.decimals)} {asset.ticker} free
-              {dec(asset.locked) > 0n ? ` · ${formatQty(asset.locked, asset.decimals)} locked and can't be sold` : ""}. You&apos;ll receive {cash} on {network}.
+              {dec(asset.locked) > 0n
+                ? ` · ${formatQty(asset.locked, asset.decimals)} locked and can't be sold`
+                : ""}
+              . You&apos;ll receive {cash} on {network}.
             </p>
-            {qty && sellError ? <p className="mt-2 text-sm text-critical">{sellError}</p> : null}
+            {qty && sellError ? (
+              <p className="mt-2 text-sm text-critical">{sellError}</p>
+            ) : null}
           </>
         ) : (
           <p className="text-text-muted">
-            {dec(asset.locked) > 0n ? `All your ${asset.ticker} is locked, so there's nothing free to sell.` : `You don't own any ${asset.ticker} yet.`}
+            {dec(asset.locked) > 0n
+              ? `All your ${asset.ticker} is locked, so there's nothing free to sell.`
+              : `You don't own any ${asset.ticker} yet.`}
           </p>
         )}
 
         {/* Quote */}
         {quote && !quote.ok ? (
-          <div role="alert" className="mt-5 rounded-2xl bg-critical-bg p-4 text-sm">
+          <div
+            role="alert"
+            className="mt-5 rounded-2xl bg-critical-bg p-4 text-sm"
+          >
             <p className="font-bold text-critical">{quote.message}</p>
           </div>
         ) : null}
@@ -283,33 +381,60 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                 className={`num rounded-full px-2.5 py-0.5 text-xs font-bold ${expired ? "bg-critical-bg text-critical" : secondsLeft <= 5 ? "bg-warning-bg text-warning" : "bg-hero/15 text-hero"}`}
                 aria-live="polite"
               >
-                {expired ? busy ? <Busy>Getting a new quote…</Busy> : "Expired" : `${secondsLeft}s`}
+                {expired ? (
+                  busy ? (
+                    <Busy>Getting a new quote…</Busy>
+                  ) : (
+                    "Expired"
+                  )
+                ) : (
+                  `${secondsLeft}s`
+                )}
               </span>
             </div>
             <dl className="mt-3 space-y-1.5 text-sm">
               {buyQuote?.ok && side === "buy" ? (
                 <>
-                  <Row label="You get" value={`≈ ${formatQty(buyQuote.shares, 6)} ${asset.ticker}`} />
+                  <Row
+                    label="You get"
+                    value={`≈ ${formatQty(buyQuote.shares, 6)} ${asset.ticker}`}
+                  />
                   <Row label="Price" value={formatUsd(buyQuote.priceUsd)} />
                   <Row label="Fee" value={formatUsd(buyQuote.feeUsd)} />
-                  <Row label="Total" value={formatUsd(buyQuote.totalUsd)} strong />
+                  <Row
+                    label="Total"
+                    value={formatUsd(buyQuote.totalUsd)}
+                    strong
+                  />
                 </>
               ) : null}
               {sellQuote?.ok && side === "sell" ? (
                 <>
                   <Row label="Price" value={formatUsd(sellQuote.priceUsd)} />
                   <Row label="Fee" value={formatUsd(sellQuote.feeUsd)} />
-                  <Row label="You receive" value={`≈ ${formatUsd(sellQuote.proceedsUsd)} ${cash}`} strong />
+                  <Row
+                    label="You receive"
+                    value={`≈ ${formatUsd(sellQuote.proceedsUsd)} ${cash}`}
+                    strong
+                  />
                 </>
               ) : null}
             </dl>
             <p className="mt-3 text-xs text-text-muted">
-              If the price moves more than 1% against you before signing, the app refuses the order and nothing is traded.
+              If the price moves more than 1% against you before signing, the
+              app refuses the order and nothing is traded.
             </p>
           </div>
         ) : null}
 
-        {result ? <ResultNote result={result} side={side} ticker={asset.ticker} decimals={asset.decimals} /> : null}
+        {result ? (
+          <ResultNote
+            result={result}
+            side={side}
+            ticker={asset.ticker}
+            decimals={asset.decimals}
+          />
+        ) : null}
 
         {side === "sell" && !canSell ? null : (
           <div className="mt-5 flex gap-3">
@@ -317,7 +442,9 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
               <>
                 <button
                   type="button"
-                  onClick={() => (side === "buy" ? setBuyQuote(null) : setSellQuote(null))}
+                  onClick={() =>
+                    side === "buy" ? setBuyQuote(null) : setSellQuote(null)
+                  }
                   disabled={busy}
                   className="rounded-xl border border-border px-[22px] py-[15px] font-semibold disabled:opacity-60"
                 >
@@ -329,8 +456,20 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                   disabled={busy}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
                 >
-                  {side === "buy" && lockIt ? <LockIcon className="size-5" /> : null}
-                  {busy ? <Busy>Placing order…</Busy> : side === "buy" ? (lockIt ? "Buy and lock" : "Buy now") : "Sell now"}
+                  {side === "buy" && lockIt ? (
+                    <LockIcon className="size-5" />
+                  ) : null}
+                  {busy ? (
+                    <Busy>Placing order…</Busy>
+                  ) : side === "buy" ? (
+                    lockIt ? (
+                      "Buy and lock"
+                    ) : (
+                      "Buy now"
+                    )
+                  ) : (
+                    "Sell now"
+                  )}
                 </button>
               </>
             ) : (
@@ -340,7 +479,15 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
                 disabled={busy || (side === "buy" ? !!buyError : !!sellError)}
                 className="flex-1 rounded-xl bg-primary px-[22px] py-[15px] font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {busy ? <Busy>{expired ? "Getting a new quote…" : "Getting a quote…"}</Busy> : expired ? "Get a new quote" : "Get a quote"}
+                {busy ? (
+                  <Busy>
+                    {expired ? "Getting a new quote…" : "Getting a quote…"}
+                  </Busy>
+                ) : expired ? (
+                  "Get a new quote"
+                ) : (
+                  "Get a quote"
+                )}
               </button>
             )}
           </div>
@@ -350,15 +497,32 @@ export function TradePanel({ asset, paying }: { asset: MarketAsset; paying: Payi
   );
 }
 
-function ResultNote({ result, side, ticker, decimals }: { result: TradeResult; side: Side; ticker: string; decimals: number }) {
+function ResultNote({
+  result,
+  side,
+  ticker,
+  decimals,
+}: {
+  result: TradeResult;
+  side: Side;
+  ticker: string;
+  decimals: number;
+}) {
   if (!result.ok) {
     return (
       <div role="alert" className="mt-5 rounded-2xl bg-critical-bg p-4 text-sm">
         <p className="font-bold text-critical">{result.message}</p>
-        {result.requestId ? (
+        {result.requestId || result.detail ? (
           <details className="mt-1 text-text-muted">
             <summary className="cursor-pointer font-semibold">Details</summary>
-            Request ID: <code className="num">{result.requestId}</code>
+            {result.detail ? (
+              <p className="mt-1 break-words">{result.detail}</p>
+            ) : null}
+            {result.requestId ? (
+              <p className="mt-1">
+                Request ID: <code className="num">{result.requestId}</code>
+              </p>
+            ) : null}
           </details>
         ) : null}
       </div>
@@ -366,7 +530,10 @@ function ResultNote({ result, side, ticker, decimals }: { result: TradeResult; s
   }
   if (result.outcome === "blocked") {
     return (
-      <div role="alert" className="mt-5 rounded-2xl border border-locked/30 p-4 text-sm">
+      <div
+        role="alert"
+        className="mt-5 rounded-2xl border border-locked/30 p-4 text-sm"
+      >
         <p className="flex items-center gap-1.5 font-bold text-locked">
           <LockIcon className="size-4" /> The app didn&apos;t sign this
         </p>
@@ -382,26 +549,47 @@ function ResultNote({ result, side, ticker, decimals }: { result: TradeResult; s
   return (
     <div role="status" className="mt-5 rounded-2xl bg-positive/10 p-4 text-sm">
       <p className="font-bold text-positive">
-        {result.status === "failed" ? "The order failed; nothing changed." : result.status === "pending" ? `Order placed for ${what}; confirming…` : side === "buy" ? `Bought ${what}` : `Sold ${what}`}
+        {result.status === "failed"
+          ? "The order failed; nothing changed."
+          : result.status === "pending"
+            ? `Order placed for ${what}; confirming…`
+            : side === "buy"
+              ? `Bought ${what}`
+              : `Sold ${what}`}
       </p>
       {result.lock ? (
         <p className="mt-1">
           Locked until {formatDate(new Date(result.lock.unlockAt))}.{" "}
-          <Link href={`/vault/${result.lock.id}`} className="font-semibold text-primary hover:underline">
+          <Link
+            href={`/vault/${result.lock.id}`}
+            className="font-semibold text-primary hover:underline"
+          >
             View lock
           </Link>
         </p>
       ) : null}
-      {result.lockError ? <p className="mt-1 text-warning">{result.lockError}</p> : null}
+      {result.lockError ? (
+        <p className="mt-1 text-warning">{result.lockError}</p>
+      ) : null}
     </div>
   );
 }
 
-function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function Row({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-text-muted">{label}</dt>
-      <dd className={`num ${strong ? "font-bold" : "font-semibold"}`}>{value}</dd>
+      <dd className={`num ${strong ? "font-bold" : "font-semibold"}`}>
+        {value}
+      </dd>
     </div>
   );
 }

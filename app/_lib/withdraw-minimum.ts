@@ -1,7 +1,7 @@
 // The smallest withdrawals True Markets accepts, where we know them. True Markets
 // refuses anything smaller (code `amount_below_minimum`) without saying the limit, so
-// we check first and tell people up front. Seen live on 2026-11-18: $5 of SOL or USDT
-// on Solana. The check uses the displayed price, so True Markets still has the final
+// we check first and tell people up front. Seen live: $5 of SOL or USDT on Solana
+// (2026-11-18), and $5 of USDC on Solana (2026-11-20: $3.70 refused, $5 sent). The check uses the displayed price, so True Markets still has the final
 // say near the line; its refusal is explained with the same number.
 
 import { dec, div, mul, toDecimalString, ZERO } from "@/engine/decimal";
@@ -9,6 +9,7 @@ import { dec, div, mul, toDecimalString, ZERO } from "@/engine/decimal";
 const MINIMUM_USD: Record<string, string> = {
   "solana:SOL": "5.00",
   "solana:USDT": "5.00",
+  "solana:USDC": "5.00",
 };
 
 const SHOWN_PLACES = 4;

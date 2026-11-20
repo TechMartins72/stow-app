@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { dec, mul, toDecimalString } from "@/engine/decimal";
 import {
   chainFamily,
@@ -48,6 +55,22 @@ export function WithdrawFlow({
   const [confirmed, setConfirmed] = useState(false);
   const [busy, start] = useTransition();
   const toast = useToast();
+  const router = useRouter();
+
+  // Next.js keeps this page alive (hidden) when you leave it, so a finished
+  // withdrawal would still be on screen when you come back. Start over instead.
+  const stageRef = useRef(stage);
+  useEffect(() => {
+    stageRef.current = stage;
+  }, [stage]);
+  useLayoutEffect(
+    () => () => {
+      if (stageRef.current === "done") startOver();
+    },
+    // startOver only calls state setters, which never change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const h = sendable.find((x) => x.assetId === assetId)!;
   const family = chainFamily(h.chain)!;
@@ -76,6 +99,7 @@ export function WithdrawFlow({
       const r = await withdrawAction({ assetId, qty, to });
       setResult(r);
       setStage("done");
+      router.refresh(); // new balances for the next withdrawal
       if (!r.ok)
         toast({ tone: "error", title: "Nothing was sent", body: r.message });
       else if (r.outcome === "blocked")
@@ -107,6 +131,14 @@ export function WithdrawFlow({
     setPreview(null);
     setResult(null);
     if (next?.qty !== undefined) setQty(next.qty);
+  }
+
+  /** A fresh, empty form, for the next withdrawal. */
+  function startOver() {
+    reset({ qty: "" });
+    setTo("");
+    setTouched(false);
+    setConfirmed(false);
   }
 
   // ---------- Done ----------
@@ -179,6 +211,13 @@ export function WithdrawFlow({
               View on explorer ↗
             </a>
           ) : null}
+          <button
+            type="button"
+            onClick={startOver}
+            className="rounded-xl border border-border px-4 py-3 text-sm font-semibold"
+          >
+            Make another withdrawal
+          </button>
           <Link
             href="/"
             className="rounded-xl bg-primary px-[22px] py-3 text-sm font-semibold text-white hover:bg-primary-hover"

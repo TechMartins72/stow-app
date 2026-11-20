@@ -94,7 +94,10 @@ export default function WelcomePage() {
           <ul className="ml-auto hidden items-center gap-6 text-sm font-semibold whitespace-nowrap text-frame-muted lg:flex">
             {NAV.map((n) => (
               <li key={n.href}>
-                <a href={n.href} className="hover:text-frame-text">
+                <a
+                  href={n.href}
+                  className="hover:text-frame-text transition-all duration-200"
+                >
                   {n.label}
                 </a>
               </li>
@@ -104,7 +107,7 @@ export default function WelcomePage() {
             href={APP}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover lg:ml-0"
+            className="ml-auto rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover lg:ml-0 transition-all duration-200"
           >
             Open Stow
           </Link>

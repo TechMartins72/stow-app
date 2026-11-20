@@ -10,7 +10,7 @@ sign** any payment, sale or trade that would touch that money, even if you ask i
   until a date. "Holiday fund, until 1 June."
 - **Budgets that pay you.** Lock dollars and get them back in parts, like a salary to
   yourself: for example 25% a month. Each part frees itself on its date.
-- **Invest, then lock.** Buy tokenized stocks and crypto from $1, or "buy and lock" in one step.
+- **Invest, then lock.** Buy crypto from $1 and tokenized stocks from $5, or "buy and lock" in one step.
 - **Advisor and Ask Stow.** Rule-based suggestions you approve, and a chat that answers
   questions about your own money. Neither can move money on its own.
 
@@ -31,16 +31,16 @@ Educational project, not financial advice.
    Plans must be at least 7 days away.
 4. **Try to break it.** Withdraw or sell the locked money. Stow refuses, names the plan in the
    way, and records the refused attempt in Activity. Nothing is signed, so nothing moves.
-5. **Invest.** Buy $1 of a stock or SOL, or use "buy and lock".
+5. **Invest.** Buy $1 of SOL or $5 of a stock, or use "buy and lock".
 6. **Ask Stow.** Open the **Ask Stow** button at the bottom right and ask "When does my money free up?"
 
 **Limits worth knowing**
 
 | What | Limit |
 | --- | --- |
-| Smallest trade | $1.00 |
+| Smallest trade | $1.00; $5.00 for stocks on Base (True Markets' minimum) |
 | Price protection | A trade is refused if the price moves more than 1% before it's signed |
-| Smallest withdrawal | $5 of SOL or USDT on Solana (True Markets' minimum) |
+| Smallest withdrawal | $5 of SOL, USDT or USDC on Solana (True Markets' minimum) |
 | Withdrawals | Crypto and dollars only; tokenized stocks can't be sent out yet |
 | Budgets (release in parts) | Stablecoins only |
 | Ask Stow | 20 questions per person per day |

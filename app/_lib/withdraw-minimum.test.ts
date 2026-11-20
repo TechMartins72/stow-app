@@ -6,15 +6,16 @@ import {
 } from "./withdraw-minimum";
 import { describeTransferRefusal } from "./transfer-refusal";
 
-// True Markets refuses withdrawals under $5 of SOL or USDT on Solana (seen live, 2026-11-18).
+// True Markets refuses withdrawals under $5 of SOL, USDT or USDC on Solana (seen live, 2026-11-18 and 2026-11-20).
 const sol = { chain: "solana", symbol: "SOL", decimals: 9, priceUsd: "160" };
 const usdt = { chain: "solana", symbol: "USDT", decimals: 6, priceUsd: "1" };
 
 describe("withdrawal minimums", () => {
-  it("knows the $5 minimum for SOL and USDT on Solana, and nothing else", () => {
+  it("knows the $5 minimum for SOL, USDT and USDC on Solana, and nothing else", () => {
     expect(withdrawMinimumUsd("solana", "SOL")).toBe("5.00");
     expect(withdrawMinimumUsd("solana", "USDT")).toBe("5.00");
-    expect(withdrawMinimumUsd("solana", "USDC")).toBeNull();
+    expect(withdrawMinimumUsd("solana", "USDC")).toBe("5.00");
+    expect(withdrawMinimumUsd("base", "USDC")).toBeNull();
     expect(withdrawMinimumUsd("base", "USDT")).toBeNull();
     expect(withdrawMinimumUsd(null, "SOL")).toBeNull();
   });
@@ -24,13 +25,16 @@ describe("withdrawal minimums", () => {
     expect(msg).toMatch(/\$5\.00/);
     expect(msg).toMatch(/about 0\.0313 SOL/); // 5 / 160 = 0.03125, rounded up
     expect(checkWithdrawMinimum({ ...usdt, qty: "4.99" })).toMatch(/5 USDT/);
+    expect(
+      checkWithdrawMinimum({ ...usdt, symbol: "USDC", qty: "3.7" }),
+    ).toMatch(/smallest USDC withdrawal is \$5\.00/);
   });
 
   it("allows $5 or more, and anything without a known minimum", () => {
     expect(checkWithdrawMinimum({ ...sol, qty: "0.03125" })).toBeNull();
     expect(checkWithdrawMinimum({ ...usdt, qty: "5" })).toBeNull();
     expect(
-      checkWithdrawMinimum({ ...usdt, symbol: "USDC", qty: "0.5" }),
+      checkWithdrawMinimum({ ...usdt, chain: "base", symbol: "USDC", qty: "0.5" }),
     ).toBeNull();
   });
 
@@ -47,7 +51,9 @@ describe("withdrawal minimums", () => {
     expect(withdrawMinimumNote(sol)).toMatch(
       /Minimum withdrawal: \$5\.00 \(about 0\.0313 SOL\)/,
     );
-    expect(withdrawMinimumNote({ ...usdt, symbol: "USDC" })).toBeNull();
+    expect(
+      withdrawMinimumNote({ ...usdt, chain: "base", symbol: "USDC" }),
+    ).toBeNull();
   });
 
   it("explains True Markets' own refusal with the known minimum", () => {

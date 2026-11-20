@@ -24,12 +24,8 @@ function minimumFrom(
   return hit?.[1];
 }
 
-/** `minimumUsd`: the minimum we know for this asset (see withdraw-minimum.ts), if any. */
-export function describeTransferRefusal(
-  err: GatewayRefusal,
-  symbol: string,
-  minimumUsd?: string | null,
-): { message: string; detail: string } {
+/** True Markets' own facts in one line, for "Details" and the server log. */
+export function refusalDetail(err: GatewayRefusal): string {
   const head =
     [err.type, err.code].filter(Boolean).join(" / ") +
     (err.message ? `: ${err.message}` : "");
@@ -39,7 +35,16 @@ export function describeTransferRefusal(
       ? [`fields=${JSON.stringify(err.fieldViolations)}`]
       : []),
   ];
-  const detail = extras.length ? `${head} (${extras.join(", ")})` : head;
+  return extras.length ? `${head} (${extras.join(", ")})` : head;
+}
+
+/** `minimumUsd`: the minimum we know for this asset (see withdraw-minimum.ts), if any. */
+export function describeTransferRefusal(
+  err: GatewayRefusal,
+  symbol: string,
+  minimumUsd?: string | null,
+): { message: string; detail: string } {
+  const detail = refusalDetail(err);
 
   switch (err.code) {
     case "amount_below_minimum": {

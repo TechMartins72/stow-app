@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkBuyAmount, checkSellQty, displayName, minAccepted, tickerOf } from "./trade-policy";
+import { checkBuyAmount, checkSellQty, displayName, minAccepted, minOrderUsd, tickerOf } from "./trade-policy";
 
 describe("checkBuyAmount", () => {
   it("accepts dollars and cents from $1.00 up to what's free", () => {
@@ -24,6 +24,21 @@ describe("checkSellQty", () => {
     expect(checkSellQty("0.001", "3.2", 8, "220", "AAPL")).toMatch(/at least \$1\.00/);
     expect(checkSellQty("abc", "3.2", 8, "220", "AAPL")).toMatch(/number/);
     expect(checkSellQty("0.123456789", "3.2", 8, "220", "AAPL")).toMatch(/8 decimal places/);
+  });
+});
+
+describe("minOrderUsd", () => {
+  // True Markets refused Base stock buys under $5 (seen live, 2026-11-20).
+  it("is $5 for stocks on Base and $1 for everything else", () => {
+    expect(minOrderUsd({ chain: "base", assetClass: "stock" })).toBe("5.00");
+    expect(minOrderUsd({ chain: "solana", assetClass: "stock" })).toBe("1.00");
+    expect(minOrderUsd({ chain: "base", assetClass: "crypto" })).toBe("1.00");
+  });
+  it("is applied to buys and sales", () => {
+    expect(checkBuyAmount("4.99", "50", "5.00")).toMatch(/minimum order is \$5\.00/);
+    expect(checkBuyAmount("5", "50", "5.00")).toBeNull();
+    expect(checkSellQty("0.02", "3.2", 8, "220", "AAPL", "5.00")).toMatch(/at least \$5\.00/);
+    expect(checkSellQty("0.03", "3.2", 8, "220", "AAPL", "5.00")).toBeNull();
   });
 });
 

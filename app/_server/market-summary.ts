@@ -34,7 +34,10 @@ export async function getAssetSummary(ticker: string): Promise<AssetSummary | nu
 
   const p = fetchSummary(symbol)
     .catch((err: unknown) => {
-      console.warn(`[market-summary] ${symbol}: ${err instanceof Error ? err.message : String(err)}`);
+      // Display only: the "Why it's moving" card just doesn't show. Trades are unaffected.
+      const msg = err instanceof Error ? err.message : String(err);
+      const why = /timeout|aborted/i.test(msg) ? `no answer within ${TIMEOUT_MS / 1000}s` : msg;
+      console.warn(`[market-summary] ${symbol}: skipped, True Markets' summary server: ${why} (retry in 15 min)`);
       return null;
     })
     .then((value) => {
