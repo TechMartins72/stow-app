@@ -67,7 +67,7 @@ schedule and price protection), auth, catalog policy, advisor, activity, formatt
 
 ### Not built yet
 
-- **AI savings-coach chat** (agreed in principle; design in section 10.1). Needs `ANTHROPIC_API_KEY`.
+- **AI savings-coach chat** (agreed in principle; design in section 10.1). Needs `GROQ_API_KEY`.
 - **Passkeys** for instant sign-in without email.
 - **Deployment** (plan: Vercel, EU region, near the Supabase database).
 - **Live test with real money** (steps in section 9.3). Only read-only live calls have run so far.
@@ -106,8 +106,8 @@ npm run dev:catalog   # READ-ONLY live check: mints an org token, prints the liv
   mode, sign-in links are also printed in the server terminal, so any email works without Resend.
 - **Environment:** copy `.env.example` to `.env` (gitignored). Keys: `GATEWAY_MODE`,
   `MOCK_GATEWAY_URL`, `TM_API_BASE`, `TM_KEY_FILE`, `SIGNER_KEY_FILE`, `DEV_USER_REF`,
-  `ROUNDTRIP_USDC`, `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`. Next will need
-  `ANTHROPIC_API_KEY` for the AI coach.
+  `ROUNDTRIP_USDC`, `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`. Ask Stow and the
+  Advisor's market line use `GROQ_API_KEY`.
 - **Secrets** live in `.secrets/` (gitignored): `api-key.json` (the org API key: `key_id` plus a
   JWK `private_key`; it's in place and works), `signer-key.mock.json` (auto-created, practice
   only), `dev-state.json` (dev scripts). The **live signer key does not exist yet**; create it
@@ -363,9 +363,9 @@ Quick-start chips; it lives on the Advisor page plus a chat button on Home.
 - **Send minimal data:** amounts, assets, lock names and dates only. No email, addresses or keys.
 - **Structured output** for the verdict and the card IDs; a per-user daily message cap; session
   history; **fall back to the rule-based Advisor** when there's no key or the AI is down.
-- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) with the server-side refusal fallback on. About
-  2–5 cents per message with tool calls. Use the official `@anthropic-ai/sdk`; read the
-  `claude-api` skill before writing it.
+- **Model:** Groq (`openai/gpt-oss-120b`, `GROQ_API_KEY`) through its OpenAI-compatible API over
+  plain fetch (`app/_server/groq.ts`). Ask Stow and the Advisor's market line first used Claude;
+  they moved to Groq on 2026-11-25 because of cost, and `@anthropic-ai/sdk` was removed.
 
 ### 10.2 Then, roughly in this order
 

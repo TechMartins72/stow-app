@@ -50,7 +50,7 @@ afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
 beforeEach(() => {
   process.env.MARKET_DATA_MCP_URL = url;
-  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.GROQ_API_KEY;
   (globalThis as { __summaries?: Map<string, unknown> }).__summaries?.clear();
   calls.length = 0;
 });
@@ -81,7 +81,7 @@ describe("getAssetSummary", () => {
 });
 
 describe("marketContextLine", () => {
-  it("without an Anthropic key, uses the summary's first sentence", async () => {
+  it("without a Groq key, uses the summary's first sentence", async () => {
     const line = await marketContextLine("SOL", { id: "reduce-risk:x", title: "Sell 1 SOL for USDC", why: "Too much risk." });
     expect(line).toBe("SOL fell after a large holder moved coins to an exchange.");
   });

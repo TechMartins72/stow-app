@@ -1,5 +1,5 @@
 // Ask Stow: pure pieces (request validation, the daily cap, the account
-// snapshot Claude reads, the instructions). Claude only ever answers in text:
+// snapshot the model reads, the instructions). The model only ever answers in text:
 // it has no tool that can move money, and nothing it says is executed.
 
 import { formatQty, formatUsd } from "./format";
@@ -9,7 +9,7 @@ export const ASK_LIMITS = {
   perDay: 20,
   /** Longest question we accept, in characters. */
   maxQuestionChars: 600,
-  /** Earlier turns sent back to Claude (user + assistant messages). */
+  /** Earlier turns sent back to the model (user + assistant messages). */
   maxHistory: 12,
   /** Longest earlier answer we send back, in characters. */
   maxAnswerChars: 2_000,
@@ -98,7 +98,7 @@ export interface AskSnapshot {
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
-/** A plain-text account summary for Claude. Only this user's own data, rounded for reading. */
+/** A plain-text account summary for the model. Only this user's own data, rounded for reading. */
 export function accountContext(s: AskSnapshot, now: Date): string {
   const lines: string[] = [];
   lines.push(`Today is ${day(now)}. Account mode: ${s.mode === "mock" ? "practice (fake money)" : "live (real money)"}.`);

@@ -355,7 +355,7 @@ export function AskWidget() {
                 className="mt-2 px-1 text-[11px] leading-snug text-text-muted"
               >
                 Explains only: it can&apos;t move money, and it isn&apos;t
-                financial advice. AI answers (Claude) can be wrong.{" "}
+                financial advice. AI answers can be wrong.{" "}
                 {remaining !== null
                   ? `${remaining} of ${ASK_LIMITS.perDay} questions left today.`
                   : `Up to ${ASK_LIMITS.perDay} a day.`}

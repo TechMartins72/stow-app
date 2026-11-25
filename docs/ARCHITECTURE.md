@@ -92,9 +92,11 @@ the app connects as the table owner.
 
 - **Advisor:** deterministic rules (`app/_lib/advisor.ts`) from holdings, locks and risk profile.
   No AI picks the suggestions.
-- **Ask Stow:** Claude answers from a read-only text snapshot of the person's own data, plus
-  True Markets' public Market Data MCP server for market news. It has no tools that can move
-  money; its answers are only displayed. 20 questions per person per day.
+- **Ask Stow:** a model on Groq (`openai/gpt-oss-120b` by default) answers from a read-only text
+  snapshot of the person's own data. For market news it can call one read-only tool,
+  `get_asset_summary`, which our server runs against True Markets' public Market Data MCP server.
+  It has no tools that can move money; its answers are only displayed. 20 questions per person
+  per day.
 - **"Why it's moving":** True Markets' AI asset summaries, shown for context only. They never
   feed trades, quotes or the Advisor's choices.
 

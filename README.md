@@ -90,7 +90,7 @@ More detail, including the data model and the reasons behind each decision: [doc
 | Signing | ECDSA P-256 payload stamps, made only by `engine/signing/guard.ts` |
 | Database | Supabase Postgres via Drizzle ORM and postgres.js (transaction pooler) |
 | Sign-in | Google (OpenID Connect with PKCE); email magic links via Resend as a fallback |
-| AI | Claude (Anthropic API) for Ask Stow, plus True Markets' Market Data MCP server for market news |
+| AI | Groq (`openai/gpt-oss-120b`) for Ask Stow and the Advisor's market line, plus True Markets' Market Data MCP server for market news |
 | Validation | Zod |
 | Tests | Vitest: money maths, lock rules, the guard end-to-end against a mock Gateway, auth, privacy policy |
 | Hosting | Vercel (Dublin, `dub1`), near the Supabase database (London, eu-west-2). Not London: True Markets refuses stock trades from UK IPs |
@@ -140,7 +140,7 @@ to the terminal and offers **Try it with practice money** on the sign-in page. W
    | `APP_URL` | the site's address, e.g. `https://your-app.vercel.app` (no trailing slash) |
    | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web client; redirect URI `APP_URL` + `/auth/google/callback` (secret **Sensitive**) |
    | `CONTACT_EMAIL` | shown on the privacy page for deletion requests |
-   | `ANTHROPIC_API_KEY` | optional: turns on Ask Stow (**Sensitive**) |
+   | `GROQ_API_KEY` | optional: turns on Ask Stow (**Sensitive**) |
    | `RESEND_API_KEY`, `EMAIL_FROM` | optional: email sign-in links (needs a domain verified in Resend) |
 
 4. **Deploy, then test with small amounts:** deposit a few dollars of USDC, buy $1 of SOL,

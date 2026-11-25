@@ -56,7 +56,7 @@ const FAQ = [
   },
   {
     q: "What is Ask Stow?",
-    a: "A chat that answers questions about your money in Stow, using your own balances, goals and budgets plus live market data from True Markets. It's powered by Claude, an AI model from Anthropic. It explains but never acts: it can't move money or trade, it isn't financial advice, and it can make mistakes, so check anything important.",
+    a: "A chat that answers questions about your money in Stow, using your own balances, goals and budgets plus live market data from True Markets. It's powered by an AI model running on Groq. It explains but never acts: it can't move money or trade, it isn't financial advice, and it can make mistakes, so check anything important.",
   },
 ];
 
